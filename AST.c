@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include <string.h>
 #include "AST.h"
 
@@ -32,6 +33,12 @@ ASTValue* ASTValue_bin_expr_create(ASTBinaryExpression* bin_expr) {
 	value->type = AST_BINEXPR_VALUE;
 	return value;
 }
+ASTValue* ASTValue_fn_expr_create(ASTFunctionExpression* fn_expr) {
+	ASTValue* value = ASTValue_create();
+	value->value.fn_expr = fn_expr;
+	value->type = AST_FN_VALUE;
+	return value;
+}
 ASTValue* ASTValue_create() {
 	ASTValue* value = (ASTValue*)malloc(sizeof(ASTValue));
 	value->type = AST_UNDEFINED_VALUE;
@@ -63,6 +70,8 @@ void* ASTValue_get(ASTValue* value) {
 		return (void*)value->value.array;
 	} else if(type == AST_BINEXPR_VALUE) {
 		return (void*)value->value.bin_expr;
+	} else if(type == AST_FN_VALUE) {
+		return (void*)value->value.fn_expr;
 	} else {
 		return NULL;
 	}
@@ -235,6 +244,68 @@ ASTBlockStatement* ASTBlockStatement_create(ASTStatement* statement) {
 void ASTBlockStatement_destroy(ASTBlockStatement* blockStmt) {
 	ASTStatement_destroy(blockStmt->statement);
 	free(blockStmt);
+}
+
+ASTArgument* ASTArgument_create(ASTValue* key, ASTValue* value) {
+	ASTArgument* argument = (ASTArgument*)malloc(sizeof(ASTArgument));
+	argument->key = key;
+	argument->value = value;
+	argument->next = NULL;
+	return argument;
+}
+void ASTArgument_destroy(ASTArgument* argument) {
+	ASTValue_destroy(argument->key);
+	ASTValue_destroy(argument->value);
+	free(argument);
+}
+ASTArgumentList* ASTArgumentList_create() {
+	ASTArgumentList* argument_list = (ASTArgumentList*)malloc(sizeof(ASTArgumentList));
+	argument_list->first = NULL;
+	argument_list->last = NULL;
+	return argument_list;
+}
+void ASTArgumentList_destroy(ASTArgumentList* argument_list) {
+	ASTArgument* current = argument_list->first;
+	ASTArgument* next;
+	while(current != NULL) {
+		next = current->next;
+		ASTArgument_destroy(current);
+		current = next;
+	}
+	free(argument_list);
+}
+ASTArgument* ASTArgumentList_get(ASTArgumentList* argument_list, ASTValue* key) {
+	ASTArgument* current = argument_list->first;
+	while(current != NULL) {
+		if( (current->key->type == AST_STRING_VALUE && strcmp(current->key->value.string, key->value.string) == 0) ||
+			(current->key->type == AST_NUMBER_VALUE && current->key->value.number == key->value.number) ) {
+			return current;
+		} else {
+			current = current->next;
+		}
+	}
+	return NULL;
+}
+void ASTArgumentList_set(ASTArgumentList* argument_list, ASTArgument* argument) {
+	if(argument_list->first == NULL) {
+		argument_list->first = argument_list->last = argument;
+	} else {
+		ASTArgument* found = ASTArgumentList_get(argument_list, argument->key);
+		if(found == NULL) {
+			argument_list->last->next = argument;
+			argument_list->last = argument;
+		} else {
+			ASTValue_destroy(found->value);
+			found->value = argument->value;
+		}
+	}
+}
+ASTFunctionExpression* ASTFunctionExpression_create(ASTValue* name, ASTArgumentList* argument_list) {
+	// TODO MAKE VALUE_FN_EXPR_CREATE()
+	ASTFunctionExpression* fn_expr = (ASTFunctionExpression*)malloc(sizeof(ASTFunctionExpression));
+	fn_expr->name = name;
+	fn_expr->argument_list = argument_list;
+	return fn_expr;
 }
 
 ASTProgram* ASTProgram_create(ASTBlock* block) {

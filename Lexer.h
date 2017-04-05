@@ -1,8 +1,13 @@
+#pragma once
 #define TOK_STRING_TYPE 0
 #define TOK_NUMBER_TYPE 1
 #define TOK_KEYWORD_TYPE 2
 #define TOK_OPERATOR_TYPE 3
 #define TOK_IDENTIFIER_TYPE 4
+
+// ----------------------------------------
+struct Token;
+struct Lexer;
 
 // ----------------------------------------
 typedef struct Token {
@@ -12,7 +17,7 @@ typedef struct Token {
 } Token;
 
 // ----------------------------------------
-typedef struct {
+typedef struct Lexer {
 	
 	char* source;
 	size_t position;

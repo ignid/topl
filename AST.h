@@ -1,3 +1,6 @@
+#ifndef AST_H
+#define AST_H
+
 #define AST_UNDEFINED_VALUE -1
 #define AST_STRING_VALUE 0
 #define AST_NUMBER_VALUE 1
@@ -5,6 +8,7 @@
 #define AST_ARRAY_VALUE 3
 #define AST_BINEXPR_VALUE 4
 #define AST_IDENTIFIER_VALUE 5
+#define AST_FN_VALUE 6
 
 #define AST_PLUS_OP 0
 #define AST_MINUS_OP 1
@@ -21,6 +25,15 @@ struct ASTObject;
 struct ASTArrayElement;
 struct ASTArray;
 struct ASTBinaryExpression;
+struct ASTArgument;
+struct ASTArgumentList;
+struct ASTFunctionExpression;
+
+struct ASTDeclarationStatement;
+struct ASTExpressionStatement;
+struct ASTFunctionStatement;
+struct ASTStatement;
+
 struct ASTProgram;
 
 // ----------------------------------------
@@ -33,6 +46,7 @@ typedef struct ASTValue {
 		struct ASTObject* object;
 		struct ASTArray* array;
 		struct ASTBinaryExpression* bin_expr;
+		struct ASTFunctionExpression* fn_expr;
 	} value;
 	int type;
 	
@@ -71,6 +85,30 @@ typedef struct ASTArray {
 } ASTArray;
 
 // ----------------------------------------
+// Function
+typedef struct ASTArgument {
+	
+	ASTValue* key;
+	ASTValue* value;
+	struct ASTArgument* next;
+	
+} ASTArgument;
+
+typedef struct ASTArgumentList {
+	
+	ASTArgument* first;
+	ASTArgument* last;
+	
+} ASTArgumentList;
+
+typedef struct ASTFunctionExpression {
+	
+	ASTValue* name;
+	ASTArgumentList* argument_list;
+	
+} ASTFunctionExpression;
+
+// ----------------------------------------
 // Binary expression tree
 typedef struct ASTBinaryExpression {
 	
@@ -100,10 +138,6 @@ typedef struct ASTBlock {
 } ASTBlock;
 
 // ----------------------------------------
-struct ASTDeclarationStatement;
-struct ASTExpressionStatement;
-struct ASTStatement;
-
 // Declaration statement
 typedef struct ASTDeclarationStatement {
 	
@@ -181,6 +215,17 @@ ASTBlock* ASTBlock_create();
 void ASTBlock_destroy(ASTBlock* block);
 void ASTBlock_push(ASTBlock* block, ASTBlockStatement* blockStmt);
 ASTBlockStatement* ASTBlockStatement_create(ASTStatement* statement);
+void ASTBlockStatement_destroy(ASTBlockStatement* blockStmt);
+
+ASTArgument* ASTArgument_create(ASTValue* key, ASTValue* value);
+void ASTArgument_destroy(ASTArgument* argument);
+ASTArgumentList* ASTArgumentList_create();
+void ASTArgumentList_destroy(ASTArgumentList* argument_list);
+ASTArgument* ASTArgumentList_get(ASTArgumentList* argument_list, ASTValue* key);
+void ASTArgumentList_set(ASTArgumentList* argument_list, ASTArgument* argument);
+ASTFunctionExpression* ASTFunctionExpression_create(ASTValue* name, ASTArgumentList* argument_list);
 
 ASTProgram* ASTProgram_create(ASTBlock* block);
 void ASTProgram_destroy(ASTProgram* program);
+
+#endif

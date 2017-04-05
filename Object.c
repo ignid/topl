@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "Object.h"
+#include "Interpreter.h"
 
 // objects
 Object* Object_create() {
@@ -87,6 +88,12 @@ Value* Value_object_create(Object* object) {
 	value->type = OBJ_OBJECT_TYPE;
 	return value;
 }
+Value* Value_fn_create(Function* function) {
+	Value* value = Value_create();
+	value->value.function = function;
+	value->type = OBJ_FN_TYPE;
+	return value;
+}
 Value* Value_create() {
 	return (Value*)malloc(sizeof(Value*));
 }
@@ -169,4 +176,118 @@ void Array_destroy(Array* array) {
 		ArrayElement_destroy(array->elements[i]);
 	}
 	free(array);
+}
+
+Argument* Argument_create(Value* key) {
+	Argument* argument = (Argument*)malloc(sizeof(Argument));
+	argument->key = key;
+	argument->value = NULL;
+	argument->next = NULL;
+	return argument;
+}
+void Argument_destroy(Argument* argument) {
+	if(argument->value != NULL)
+		Value_destroy(argument->value);
+	free(argument);
+}
+ArgumentList* ArgumentList_create() {
+	ArgumentList* argument_list = (ArgumentList*)malloc(sizeof(ArgumentList));
+	argument_list->first = NULL;
+	argument_list->last = NULL;
+	return argument_list;
+}
+ArgumentList* ArgumentList_inherit(ArgumentList* argument_list) {
+	ArgumentList* argument_list1 = ArgumentList_create();
+	argument_list1->first = argument_list1->last = argument_list->first;
+	
+	Argument* current = argument_list->first->next;
+	while(current != NULL) {
+		argument_list->last->next = current;
+		argument_list->last = current;
+		current = current->next;
+	}
+	
+	return argument_list1;
+}
+Argument* ArgumentList_get(ArgumentList* argument_list, Value* key) {
+	Argument* current = argument_list->first;
+	while(current != NULL) {
+		// TODO value_compare?
+		if( (current->key->type == OBJ_STRING_TYPE && key->type == OBJ_STRING_TYPE && strcmp(Value_get(current->key), Value_get(key)) == 0) ||
+			(current->key->type == OBJ_NUMBER_TYPE && key->type == OBJ_NUMBER_TYPE && (*(double*)Value_get(current->key) == *(double*)Value_get(key)) ) ) {
+			return current;
+		} else {
+			current = current->next;
+		}
+	}
+	return NULL;
+}
+Argument* ArgumentList_get_by_index(ArgumentList* argument_list, int index) {
+	Argument* current;
+	int i;
+	// 0 <= 0 -> 
+	for(i = 0, current = argument_list->first; i <= index; ++i) {
+		//printf("I %i\n", i);
+		if(current == NULL) {
+			break;
+		} else if (i == index) {
+			return current;
+		} else {
+			current = current->next;
+		}
+	}
+	printf("NONE!");
+	return NULL;
+}
+void ArgumentList_set(ArgumentList* argument_list, Argument* argument) {
+	if(argument_list->first == NULL) {
+		argument_list->first = argument_list->last = argument;
+	} else {
+		Argument* found = ArgumentList_get(argument_list, argument->key);
+		if(found == NULL) {
+			argument_list->last->next = argument;
+			argument_list->last = argument;
+		} else {
+			Value_destroy(found->value);
+			found->value = argument->value;
+		}
+	}
+}
+void ArgumentList_push(ArgumentList* argument_list, Argument* argument) {
+	argument_list->last->next = argument;
+	argument_list->last = argument;
+}
+void ArgumentList_destroy(ArgumentList* argument_list) {
+	Argument* current = argument_list->first;
+	Argument* next;
+	while(current != NULL) {
+		next = current->next;
+		Argument_destroy(current);
+		current = next;
+	}
+	free(argument_list);
+}
+
+Function* Function_create(struct Block* block, ArgumentList* arguments) {
+	Function* function = (Function*)malloc(sizeof(Function));
+	function->type = OBJ_FN_REGULAR;
+	function->code.block = block;
+	function->arguments = arguments;
+	return function;
+}
+Function* NativeFunction_create(Value* (*native)(struct Scope* scope, ArgumentList* arguments), ArgumentList* arguments) {
+	Function* function = (Function*)malloc(sizeof(Function));
+	function->type = OBJ_FN_NATIVE;
+	function->code.native = native;
+	function->arguments = arguments;
+	return function;
+}
+void Function_destroy(Function* function) {
+	if(function->type == OBJ_FN_REGULAR)
+		Block_destroy(function->code.block);
+	ArgumentList_destroy(function->arguments);
+	free(function);
+}
+Function* Function_inherit(Function* function) {
+	return Function_create(Block_inherit(function->code.block), ArgumentList_inherit(function->arguments));
 }

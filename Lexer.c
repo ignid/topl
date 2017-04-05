@@ -59,8 +59,9 @@ Token* Lexer_parse_next(Lexer* lexer) {
 	if (
 		current == '{' || current == '}' || current == ':' ||
 		current == '+' || current == '-' || current == '*' || current == '/' ||
+		current == '(' || current == ')' ||
 		current == '=' ||
-		current == ';'
+		current == ',' || current == ';'
 	) {
 		return Lexer_parse_operator(lexer);
 	} else if (current == '"' || current == '\'') {

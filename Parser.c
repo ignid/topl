@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include "AST.h"
 #include "Parser.h"
 
 Parser* Parser_create(Token* token) {
@@ -17,17 +18,13 @@ ASTProgram* Parser_parse(Parser* parser) {
 	parser->program = program;
 	return program;
 }
-void* Parser_parse_next(Parser* parser) {
-	
-}
-ASTValue* Parser_parse_value(Parser* parser) {
-	
-}
 
 ASTValue* Parser_parse_literal(Parser* parser) {
 	ASTValue* value;
 	Token* current = parser->current;
-	if(current->type == TOK_STRING_TYPE) {
+	if(current == NULL) {
+		return NULL;
+	} else if(current->type == TOK_STRING_TYPE) {
 		printf("STRING TOKEN %s\n", current->value);
 		value = ASTString_create(current->value);
 	} else if (current->type == TOK_NUMBER_TYPE) {
@@ -43,6 +40,57 @@ ASTValue* Parser_parse_literal(Parser* parser) {
 	return value;
 }
 
+ASTArgumentList* Parser_parse_call_argument_list(Parser* parser) {
+	ASTArgumentList* argument_list = ASTArgumentList_create();
+	size_t length = 1;
+	
+	ASTValue* first = Parser_parse_literal(parser);
+	if(first == NULL) {
+		return argument_list;
+	}
+	ASTArgumentList_set(argument_list, ASTArgument_create(NULL, first));
+	
+	Token* current;
+	while( (current = parser->current) != NULL) {
+		if (strcmp(current->value, ",") == 0) {
+			Parser_advance(parser);
+			ASTValue* value = Parser_parse_literal(parser);
+			if(value == NULL) {
+				// TODO ERROR
+				printf("Expected literal\n");
+				return NULL;
+			} else { // TODO check for non-positional arguments
+				ASTArgumentList_set(argument_list, ASTArgument_create(NULL, value));
+				length++;
+			}
+		} else {
+			break;
+		}
+	}
+	
+	return argument_list;
+}
+ASTValue* Parser_parse_call_expression(Parser* parser) {
+	printf("Call expression\n");
+	ASTValue* value = Parser_parse_literal(parser);
+	Token* current = parser->current;
+	if(strcmp(current->value, "(") == 0) {
+		Parser_advance(parser);
+		ASTArgumentList* argument_list = Parser_parse_call_argument_list(parser);
+		
+		current = parser->current;
+		if(current == NULL || strcmp(current->value, ")") != 0) {
+			//TODO ERROR
+			printf("Expected )\n");
+			return NULL;
+		}
+		
+		Parser_advance(parser);
+		return ASTValue_fn_expr_create(ASTFunctionExpression_create(value, argument_list));
+	}
+	return value;
+}
+
 ASTValue* Parser_parse_binary_expression(Parser* parser) {
 	return Parser_parse_additive_expression(parser);
 }
@@ -52,9 +100,7 @@ ASTValue* Parser_parse_additive_expression(Parser* parser) {
 	Token* current;
 	while( (current = parser->current) != NULL ) {
 		printf("%s\n", current->value);
-		if(strcmp(current->value, ";") == 0) {
-			break;
-		} else if(strcmp(current->value, "+") == 0 || strcmp(current->value, "-") == 0) {
+		if(strcmp(current->value, "+") == 0 || strcmp(current->value, "-") == 0) {
 			Parser_advance(parser);
 			int op;
 			if(strcmp(current->value, "+") == 0) op = AST_PLUS_OP;
@@ -71,18 +117,18 @@ ASTValue* Parser_parse_additive_expression(Parser* parser) {
 }
 ASTValue* Parser_parse_term_expression(Parser* parser) {
 	printf("MULTIPLICATIVE EXPRESSION IN\n");
-	ASTValue* bin_expr = Parser_parse_literal(parser);
+	//ASTValue* bin_expr = Parser_parse_literal(parser);
+	ASTValue* bin_expr = Parser_parse_call_expression(parser);
 	Token* current;
 	while( (current = parser->current) != NULL ) {
-		if(strcmp(current->value, ";") == 0) {
-			break;
-		} else if(strcmp(current->value, "*") == 0 || strcmp(current->value, "/") == 0) {
+		if(strcmp(current->value, "*") == 0 || strcmp(current->value, "/") == 0) {
 			Parser_advance(parser);
 			int op;
 			if(strcmp(current->value, "*") == 0) op = AST_MULT_OP;
 			else op = AST_DIV_OP;
 			
-			ASTValue* value = Parser_parse_literal(parser);
+			//ASTValue* value = Parser_parse_literal(parser);
+			ASTValue* value = Parser_parse_call_expression(parser);
 			printf("%s\n", current->value);
 			bin_expr = ASTValue_bin_expr_create(ASTBinaryExpression_create(op, bin_expr, value));
 		} else {
@@ -190,7 +236,7 @@ void Parser_parse_EOS(Parser* parser) { // end of statement: could be end of fil
 }
 
 Token* Parser_advance(Parser* parser) {
-	Parser* last = parser->current;
+	Token* last = parser->current;
 	parser->current = parser->current->next;
 	return last;
 }

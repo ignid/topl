@@ -27,20 +27,27 @@ gcc main.c -o main -w
 ## Todo List
 
 - [ ] Error handling
-- [x] Declaration statements
-- [x] Expression statements
-- [ ] Function declaration statements
-- [ ] If statements
-- [ ] While statements
+- [ ] Statements
+	- [x] Declaration statements
+	- [x] Expression statements
+	- [ ] Function declaration statements
+	- [ ] If statements
+	- [ ] While statements
 - [x] Expressions
-- [ ] Unary expressions
-- [ ] Function call expressions
+	- [ ] Unary expressions
+	- [x] Function call expressions
+- [ ] Data structures
+	- [x] Basic structures (numbers, strings)
+	- [ ] Objects (prototypical inheritance like in JS)
+	- [ ] Arrays
 - [ ] Add an actual REPL/CLI interpreter
-- [ ] Add working Hello World example
+- [x] Add working Hello World example
 
 ## Examples
 
-TBA
+```
+print("Hello World");
+```
 
 ## Grammar
 

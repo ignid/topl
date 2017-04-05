@@ -1,8 +1,13 @@
 #include <stdio.h>
+#include "AST.c"
+#include "Object.c"
+#include "Lexer.c"
+#include "Parser.c"
 #include "Interpreter.c"
 
 int main() {
-	Lexer* lexer = Lexer_create("a=10;12*a;");
+	Lexer* lexer = Lexer_create("a=10;10*10;");
+	//Lexer* lexer = Lexer_create("1+1;");
 	Lexer_parse(lexer);
 	
 	printf("----------------------------------------\n");

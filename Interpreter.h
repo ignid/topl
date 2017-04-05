@@ -1,14 +1,18 @@
-#include "Object.c"
-#include "Parser.c"
+#ifndef INTERPRETER_H
+#define INTERPRETER_H
+
+#include "Object.h"
+#include "Parser.h"
 
 // ----------------------------------------
-// Represents a hashtable mapping identifiers to a certain variable
 struct ScopeVariable;
 struct Scope;
 struct Block;
 struct Program;
 struct Interpreter;
 
+// ----------------------------------------
+// Represents a hashtable mapping identifiers to a certain variable
 typedef struct ScopeVariable {
 	
 	char* key;
@@ -57,12 +61,14 @@ void Interpreter_destroy(Interpreter* interpreter);
 
 Block* Block_create(ASTBlock* ast, Scope* scope);
 void Block_destroy(Block* block);
+Block* Block_inherit(Block* block);
 
 Scope* Scope_create();
 void Scope_destroy(Scope* scope);
 Scope* Scope_inherit(Scope* scope);
 ScopeVariable* Scope_get(Scope* scope, char* key);
 void Scope_set(Scope* scope, char* key, Value* value);
+void Scope_push(Scope* scope, char* key, Value* value);
 ScopeVariable* ScopeVariable_create(Scope* scope, char* key, Value* value);
 
 void Block_evaluate(Block* block);
@@ -72,3 +78,5 @@ Value* Value_evaluate(ASTValue* value, Block* block);
 
 Program* Program_create(ASTProgram* program, Scope* scope);
 void Program_destroy(Program* program);
+
+#endif

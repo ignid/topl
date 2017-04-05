@@ -1,8 +1,12 @@
-#include "AST.c"
-#include "Lexer.c"
+#ifndef PARSER_H
+#define PARSER_H
+
+#include "AST.h"
+#include "Lexer.h"
 
 // ----------------------------------------
-typedef struct {
+struct Parser;
+typedef struct Parser {
 	
 	Token* first;
 	Token* current;
@@ -17,8 +21,10 @@ void Parser_destroy(Parser* parser);
 ASTProgram* Parser_parse(Parser* parser);
 void* Parser_parse_next(Parser* parser);
 
-ASTValue* Parser_parse_value(Parser* parser);
 ASTValue* Parser_parse_literal(Parser* parser);
+
+ASTArgumentList* Parser_parse_call_argument_list(Parser* parser);
+ASTValue* Parser_parse_call_expression(Parser* parser);
 
 ASTValue* Parser_parse_binary_expression(Parser* parser);
 ASTValue* Parser_parse_additive_expression(Parser* parser);
@@ -36,3 +42,5 @@ ASTProgram* Parser_parse_program(Parser* parser);
 void Parser_parse_EOS(Parser* parser);
 
 Token* Parser_advance(Parser* parser);
+
+#endif
