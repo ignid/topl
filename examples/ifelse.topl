@@ -4,4 +4,14 @@ if(1) {
 
 if(0) {
 	print("This shouldn't print");
+} else {
+	print("This should print too");
+}
+
+if(0 == 0) {
+	print("This should print also");
+}
+
+if(10 != 1) {
+	print("This should also print");
 }

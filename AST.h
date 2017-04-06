@@ -14,6 +14,12 @@
 #define AST_MINUS_OP 1
 #define AST_DIV_OP 2
 #define AST_MULT_OP 3
+#define AST_LESS_OP 4
+#define AST_MORE_OP 5
+#define AST_LESS_EQ_OP 6
+#define AST_MORE_EQ_OP 7
+#define AST_EQUAL_OP 8
+#define AST_NOT_EQUAL_OP 9
 
 #define AST_DECL_STATEMENT 0
 #define AST_EXPR_STATEMENT 1
@@ -211,7 +217,7 @@ ASTStatement* ASTStatement_create();
 void ASTStatement_destroy(ASTStatement* statement);
 ASTStatement* ASTDeclarationStatement_create(ASTValue* left, ASTValue* right);
 ASTStatement* ASTExpressionStatement_create(ASTValue* expression);
-ASTStatement* ASTIfStatement_create(ASTValue* expression, ASTBlock* body);
+ASTStatement* ASTIfStatement_create(ASTValue* expression, ASTBlock* body, ASTBlock* block_else);
 
 ASTBlock* ASTBlock_create();
 void ASTBlock_destroy(ASTBlock* block);

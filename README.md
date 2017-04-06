@@ -36,7 +36,8 @@ gcc main.c -o main -w
 - [x] Expressions
 	- [ ] Unary expressions
 	- [x] Function call expressions
-	- [ ] Equality expressions (==, !=)
+	- [x] Equality expressions (==, !=)
+	- [x] Comparison expressions (>, <, >=, <=)
 - [ ] Data structures
 	- [x] Basic structures (numbers, strings)
 	- [ ] Objects (prototypical inheritance like in JS)

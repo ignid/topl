@@ -203,12 +203,13 @@ ASTStatement* ASTExpressionStatement_create(ASTValue* expression) {
 	statement->statement.expression->expression = expression;
 	return statement;
 }
-ASTStatement* ASTIfStatement_create(ASTValue* expression, ASTBlock* block) {
+ASTStatement* ASTIfStatement_create(ASTValue* expression, ASTBlock* block, ASTBlock* block_else) {
 	ASTStatement* statement = ASTStatement_create();
 	statement->type = AST_IF_STATEMENT;
 	statement->statement.ifelse = (ASTIfStatement*)malloc(sizeof(ASTIfStatement));
 	statement->statement.ifelse->expression = expression;
 	statement->statement.ifelse->block = block;
+	statement->statement.ifelse->block_else = block_else;
 	return statement;
 }
 

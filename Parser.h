@@ -27,6 +27,8 @@ ASTArgumentList* Parser_parse_call_argument_list(Parser* parser);
 ASTValue* Parser_parse_call_expression(Parser* parser);
 
 ASTValue* Parser_parse_binary_expression(Parser* parser);
+ASTValue* Parser_parse_equality_expression(Parser* parser);
+ASTValue* Parser_parse_comparison_expression(Parser* parser);
 ASTValue* Parser_parse_additive_expression(Parser* parser);
 ASTValue* Parser_parse_term_expression(Parser* parser);
 

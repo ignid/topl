@@ -233,7 +233,7 @@ Argument* ArgumentList_get_by_index(ArgumentList* argument_list, int index) {
 	int i;
 	// 0 <= 0 -> 
 	for(i = 0, current = argument_list->first; i <= index; ++i) {
-		//log_info("I %i\n", i);
+		//log_debug("I %i\n", i);
 		if(current == NULL) {
 			break;
 		} else if (i == index) {

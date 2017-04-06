@@ -57,7 +57,7 @@ Token* Lexer_parse_next(Lexer* lexer) {
 		current == '{' || current == '}' || current == ':' ||
 		current == '+' || current == '-' || current == '*' || current == '/' ||
 		current == '(' || current == ')' ||
-		current == '=' ||
+		current == '<' || current == '>' || current == '!' || current == '=' ||
 		current == ',' || current == ';'
 	) {
 		return Lexer_parse_operator(lexer);
@@ -89,7 +89,7 @@ Token* Lexer_parse_string(Lexer* lexer) {
 		}
 	}
 	string[i] = '\0';
-	log_info("STRING %s", string);
+	log_debug("STRING %s", string);
 	return Token_create(TOK_STRING_TYPE, string);
 }
 Token* Lexer_parse_number(Lexer* lexer) {
@@ -106,7 +106,7 @@ Token* Lexer_parse_number(Lexer* lexer) {
 		}
 	}
 	string[i] = '\0';
-	log_info("NUMBER %s", string);
+	log_debug("NUMBER %s", string);
 	return Token_create(TOK_NUMBER_TYPE, string);
 }
 Token* Lexer_parse_identifier(Lexer* lexer) {
@@ -123,7 +123,7 @@ Token* Lexer_parse_identifier(Lexer* lexer) {
 		}
 	}
 	string[i] = '\0';
-	log_info("IDENTIFIER %s", string);
+	log_debug("IDENTIFIER %s", string);
 	// keywords: true, false, null
 	if( strcmp(string, "false") == 0 ||
 		strcmp(string, "true") == 0 ||
@@ -135,10 +135,25 @@ Token* Lexer_parse_identifier(Lexer* lexer) {
 }
 Token* Lexer_parse_operator(Lexer* lexer) {
 	char current = lexer->source[lexer->position++];
+	if(lexer->position < lexer->length) {
+		char next = lexer->source[lexer->position];
+		if( (current == '<' && next == '=') ||
+			(current == '>' && next == '=') ||
+			(current == '=' && next == '=') ||
+			(current == '!' && next == '=') ) {
+			lexer->position++;
+			char* string = (char*)malloc(3);
+			string[0] = current;
+			string[1] = next;
+			string[2] = '\0';
+			log_debug("OPERATOR %s", string);
+			return Token_create(TOK_OPERATOR_TYPE, string);
+		}
+	}
 	char* string = (char*)malloc(2);
 	string[0] = current;
 	string[1] = '\0';
-	log_info("OPERATOR %s", string);
+	log_debug("OPERATOR %s", string);
 	return Token_create(TOK_OPERATOR_TYPE, string);
 }
 void Lexer_ignore_whitespace(Lexer* lexer) {
