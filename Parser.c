@@ -1,4 +1,6 @@
 #include <stdlib.h>
+#include "Error.h"
+#include "log.c/src/log.h"
 #include "AST.h"
 #include "Parser.h"
 
@@ -25,14 +27,14 @@ ASTValue* Parser_parse_literal(Parser* parser) {
 	if(current == NULL) {
 		return NULL;
 	} else if(current->type == TOK_STRING_TYPE) {
-		printf("STRING TOKEN %s\n", current->value);
+		log_info("STRING TOKEN %s", current->value);
 		value = ASTString_create(current->value);
 	} else if (current->type == TOK_NUMBER_TYPE) {
 		value = ASTNumber_create(strtod(current->value, NULL));
-		printf("NUMBER %f\n", *(value->value.number));
+		log_info("NUMBER %f", *(value->value.number));
 	} else if (current->type == TOK_IDENTIFIER_TYPE) {
 		value = ASTIdentifier_create(current->value);
-		printf("IDENTIFIER %s\n", current->value);
+		log_info("IDENTIFIER %s", current->value);
 	} else {
 		return NULL;
 	}
@@ -44,7 +46,7 @@ ASTArgumentList* Parser_parse_call_argument_list(Parser* parser) {
 	ASTArgumentList* argument_list = ASTArgumentList_create();
 	size_t length = 1;
 	
-	ASTValue* first = Parser_parse_literal(parser);
+	ASTValue* first = Parser_parse_binary_expression(parser);
 	if(first == NULL) {
 		return argument_list;
 	}
@@ -54,10 +56,10 @@ ASTArgumentList* Parser_parse_call_argument_list(Parser* parser) {
 	while( (current = parser->current) != NULL) {
 		if (strcmp(current->value, ",") == 0) {
 			Parser_advance(parser);
-			ASTValue* value = Parser_parse_literal(parser);
+			ASTValue* value = Parser_parse_binary_expression(parser);
 			if(value == NULL) {
-				// TODO ERROR
-				printf("Expected literal\n");
+				log_error("Expected expression");
+				Error_throw(1);
 				return NULL;
 			} else { // TODO check for non-positional arguments
 				ASTArgumentList_set(argument_list, ASTArgument_create(NULL, value));
@@ -71,7 +73,7 @@ ASTArgumentList* Parser_parse_call_argument_list(Parser* parser) {
 	return argument_list;
 }
 ASTValue* Parser_parse_call_expression(Parser* parser) {
-	printf("Call expression\n");
+	log_info("Call expression");
 	ASTValue* value = Parser_parse_literal(parser);
 	Token* current = parser->current;
 	if(strcmp(current->value, "(") == 0) {
@@ -80,9 +82,8 @@ ASTValue* Parser_parse_call_expression(Parser* parser) {
 		
 		current = parser->current;
 		if(current == NULL || strcmp(current->value, ")") != 0) {
-			//TODO ERROR
-			printf("Expected )\n");
-			return NULL;
+			log_error("Expected )");
+			Error_throw(1);
 		}
 		
 		Parser_advance(parser);
@@ -95,11 +96,11 @@ ASTValue* Parser_parse_binary_expression(Parser* parser) {
 	return Parser_parse_additive_expression(parser);
 }
 ASTValue* Parser_parse_additive_expression(Parser* parser) {
-	printf("ADDITIVE EXPRESSION IN\n");
+	log_info("ADDITIVE EXPRESSION IN");
 	ASTValue* bin_expr = Parser_parse_term_expression(parser);
 	Token* current;
 	while( (current = parser->current) != NULL ) {
-		printf("%s\n", current->value);
+		log_info("%s", current->value);
 		if(strcmp(current->value, "+") == 0 || strcmp(current->value, "-") == 0) {
 			Parser_advance(parser);
 			int op;
@@ -107,7 +108,7 @@ ASTValue* Parser_parse_additive_expression(Parser* parser) {
 			else op = AST_MINUS_OP;
 			
 			ASTValue* value = Parser_parse_term_expression(parser);
-			printf("%s\n", current->value);
+			log_info("%s", current->value);
 			bin_expr = ASTValue_bin_expr_create(ASTBinaryExpression_create(op, bin_expr, value));
 		} else {
 			break;
@@ -116,7 +117,7 @@ ASTValue* Parser_parse_additive_expression(Parser* parser) {
 	return bin_expr;
 }
 ASTValue* Parser_parse_term_expression(Parser* parser) {
-	printf("MULTIPLICATIVE EXPRESSION IN\n");
+	log_info("MULTIPLICATIVE EXPRESSION IN");
 	//ASTValue* bin_expr = Parser_parse_literal(parser);
 	ASTValue* bin_expr = Parser_parse_call_expression(parser);
 	Token* current;
@@ -129,7 +130,7 @@ ASTValue* Parser_parse_term_expression(Parser* parser) {
 			
 			//ASTValue* value = Parser_parse_literal(parser);
 			ASTValue* value = Parser_parse_call_expression(parser);
-			printf("%s\n", current->value);
+			log_info("%s", current->value);
 			bin_expr = ASTValue_bin_expr_create(ASTBinaryExpression_create(op, bin_expr, value));
 		} else {
 			break;
@@ -144,14 +145,14 @@ ASTObjectPair* Parser_parse_objectPair(Parser* parser) {
 		Parser_advance(parser);
 		return NULL;
 	} else if(key->type != TOK_STRING_TYPE) {
-		printf("EXPECTED OBJECT KEY: STRING TYPE %s\n", key->value);
+		log_info("EXPECTED OBJECT KEY: STRING TYPE %s", key->value);
 		return NULL;
 	}
 	Parser_advance(parser);
 	
 	Token* current = parser->current;
 	if(strcmp(current->value, ":") != 0) {
-		printf("EXPECTED OBJECT :\n");
+		log_info("EXPECTED OBJECT ':'");
 		return NULL;
 	}
 	Parser_advance(parser);
@@ -163,7 +164,7 @@ ASTObjectPair* Parser_parse_objectPair(Parser* parser) {
 		Parser_advance(parser);
 	}
 	
-	printf("COMPLETE! %s %f\n", key->value, *(value->value.number));
+	log_info("COMPLETE! %s %f", key->value, *(value->value.number));
 	
 	return ASTObjectPair_create(key->value, value);
 }
@@ -176,8 +177,8 @@ ASTObject* Parser_parse_object(Parser* parser) {
 	if(strcmp(current->value, "{") == 0) {
 		Parser_advance(parser);
 	} else {
-		printf("Expected object start {\n");
-		return NULL;
+		log_error("Expected object start {");
+		Error_throw(1);
 	}
 	
 	current = parser->current;
@@ -192,16 +193,16 @@ ASTStatement* Parser_parse_statement(Parser* parser) {
 	if(current == NULL) return NULL; // EOF
 	if( current->type == TOK_IDENTIFIER_TYPE &&
 		current->next != NULL && strcmp(current->next->value, "=") == 0 ) {
-		printf("declaration\n");
+		log_info("declaration");
 		return Parser_parse_declaration_stmt(parser);
 	} else {
-		printf("expression\n");
+		log_info("expression");
 		return Parser_parse_expression_stmt(parser);
 	}
 }
 ASTStatement* Parser_parse_declaration_stmt(Parser* parser) {
 	char* identifier = Parser_advance(parser)->value;
-	printf("DECL IDENTIFIER = %s\n", identifier);
+	log_info("DECL IDENTIFIER = %s", identifier);
 	Parser_advance(parser); // =
 	ASTValue* expression = Parser_parse_binary_expression(parser);
 	Parser_parse_EOS(parser);
@@ -225,13 +226,13 @@ ASTProgram* Parser_parse_program(Parser* parser) {
 
 void Parser_parse_EOS(Parser* parser) { // end of statement: could be end of file or ";"
 	Token* current = parser->current;
-	printf("EOS\n");
+	log_info("EOS");
 	if(current == NULL) return;
 	if(strcmp(current->value, ";") == 0) {
 		Parser_advance(parser);
 	} else {
-		// TODO THROW ERROR
-		printf("Unexpected character %s\n", current->value);
+		log_error("Unexpected character %s", current->value);
+		Error_throw(1);
 	}
 }
 

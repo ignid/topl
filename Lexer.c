@@ -1,5 +1,7 @@
 #include <string.h>
 #include <ctype.h>
+#include "log.c/src/log.h"
+#include "Error.h"
 #include "Lexer.h"
 
 Lexer* Lexer_create(char* source) {
@@ -72,7 +74,8 @@ Token* Lexer_parse_next(Lexer* lexer) {
 		return Lexer_parse_identifier(lexer);
 	} else if (current == '\0') {
 	} else {
-		printf("Unexpected %c\n", current);
+		log_error("Unexpected %c", current);
+		Error_throw(1);
 	}
 	return NULL;
 }
@@ -92,7 +95,7 @@ Token* Lexer_parse_string(Lexer* lexer) {
 		}
 	}
 	string[length] = '\0';
-	printf("STRING %s\n", string);
+	log_info("STRING %s", string);
 	return Token_create(TOK_STRING_TYPE, string);
 }
 Token* Lexer_parse_number(Lexer* lexer) {
@@ -109,7 +112,7 @@ Token* Lexer_parse_number(Lexer* lexer) {
 		}
 	}
 	string[length] = '\0';
-	printf("NUMBER %s\n", string);
+	log_info("NUMBER %s", string);
 	return Token_create(TOK_NUMBER_TYPE, string);
 }
 Token* Lexer_parse_identifier(Lexer* lexer) {
@@ -126,7 +129,7 @@ Token* Lexer_parse_identifier(Lexer* lexer) {
 		}
 	}
 	string[length] = '\0';
-	printf("IDENTIFIER %s\n", string);
+	log_info("IDENTIFIER %s", string);
 	// keywords: true, false, null
 	if(strcmp(string, "false") == 0 ||
 		strcmp(string, "true") == 0 ||
@@ -140,7 +143,7 @@ Token* Lexer_parse_operator(Lexer* lexer) {
 	char* string = malloc(2);
 	string[0] = current;
 	string[1] = '\0';
-	printf("OPERATOR %s\n", string);
+	log_info("OPERATOR %s", string);
 	return Token_create(TOK_OPERATOR_TYPE, string);
 }
 void Lexer_ignore_whitespace(Lexer* lexer) {

@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
+#include "log.c/src/log.h"
 #include "AST.h"
 
 ASTValue* ASTIdentifier_create(char* string) {
@@ -115,7 +116,8 @@ void ASTObject_set(ASTObject* object, ASTObjectPair* objectPair) {
 			object->last->next = objectPair;
 			object->last = objectPair;
 		} else {
-			printf("ERROR! AST OBJECT REDEFINITION!\n");
+			log_error("ERROR! AST OBJECT REDEFINITION!");
+			Error_throw(1);
 		}
 	}
 }
@@ -173,12 +175,12 @@ ASTStatement* ASTStatement_create() {
 }
 void ASTStatement_destroy(ASTStatement* statement) {
 	if(statement->type == AST_DECL_STATEMENT) {
-		printf("AST_DECL_STMT FREE\n");
+		log_info("AST_DECL_STMT FREE");
 		ASTValue_destroy(statement->statement.declaration->left);
 		ASTValue_destroy(statement->statement.declaration->right);
 		free(statement->statement.declaration);
 	} else if(statement->type == AST_EXPR_STATEMENT) {
-		printf("AST_EXPR_STMT FREE\n");
+		log_info("AST_EXPR_STMT FREE");
 		ASTValue_destroy(statement->statement.expression->expression);
 		free(statement->statement.expression);
 	}

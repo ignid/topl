@@ -1,6 +1,7 @@
+#include "log.c/src/log.h"
+#include "Error.h"
 #include "AST.h"
 #include "Interpreter.h"
-
 #include "lib/base.c"
 
 Interpreter* Interpreter_create(Program* pr) {
@@ -130,11 +131,11 @@ Value* BlockStatement_evaluate(ASTBlockStatement* statement, Block* block) {
 Value* Statement_evaluate(ASTStatement* statement, Block* block) {
 	// TODO free values malloc'd in this (done)
 	if(statement->type == AST_DECL_STATEMENT) {
-		printf("Declaration Stmt\n");
+		log_info("Declaration Stmt");
 		ASTDeclarationStatement* stmt = (ASTDeclarationStatement*)ASTStatement_get(statement);
 		
 		char* identifier = ASTValue_get(stmt->left);
-		printf("DECL IDENTIFIER %s\n", ASTValue_get(stmt->left));
+		log_info("DECL IDENTIFIER %s", ASTValue_get(stmt->left));
 		
 		Value* right = Value_evaluate(stmt->right, block);
 		Scope_set(block->scope, identifier, right);
@@ -142,7 +143,7 @@ Value* Statement_evaluate(ASTStatement* statement, Block* block) {
 		return NULL; // <-- FUCK YESS THIS FIXES EVERYTHING!!!!!!!
 		// I CANT BELIEVE I SPEND THIRTY MINS OF PULLING MUH HAIR BC THIS
 	} else if(statement->type == AST_EXPR_STATEMENT) {
-		printf("Expression Stmt\n");
+		log_info("Expression Stmt");
 		Value* value = Value_evaluate(
 			((ASTExpressionStatement*)ASTStatement_get(statement))->expression,
 			block
@@ -151,33 +152,32 @@ Value* Statement_evaluate(ASTStatement* statement, Block* block) {
 	}
 }
 Value* Value_evaluate(ASTValue* value, Block* block) {
-	printf("TYPE %i\n", value->type);
+	log_info("TYPE %i", value->type);
 	if(value->type == AST_STRING_VALUE) {
-		printf("STRING VALUE %s\n", value->value.string);
+		log_info("STRING VALUE %s", value->value.string);
 		return String_create(value->value.string);
 	} else if (value->type == AST_NUMBER_VALUE) {
-		printf("NUMBER VALUE %f\n", *(double*)(value->value.number));
+		log_info("NUMBER VALUE %f", *(double*)(value->value.number));
 		return Number_create(*value->value.number);
 	} else if (value->type == AST_OBJECT_VALUE) {
 		// TODO
 	} else if (value->type == AST_ARRAY_VALUE) {
 		// TODO
 	} else if (value->type == AST_IDENTIFIER_VALUE) {
-		printf("IDENTIFIER VALUE %s\n", value->value.string);
+		log_info("IDENTIFIER VALUE %s", value->value.string);
 		return Scope_get(block->scope, value->value.string)->value;
 	} else if (value->type == AST_FN_VALUE) {
-		printf("FUNCTION VALUE\n");
+		log_info("FUNCTION VALUE");
 		ASTFunctionExpression* fn_expr = value->value.fn_expr;
 		if(fn_expr->name->type != AST_IDENTIFIER_VALUE) {
-			// TODO ERROR
-			printf("Expected identifier value for fn_expr\n");
-			return NULL;
+			log_error("Expected identifier value for fn_expr");
+			Error_throw(1);
 		}
 		
 		ScopeVariable* fn_var = Scope_get(block->scope, fn_expr->name->value.string);
 		if(fn_var == NULL || fn_var->value->type != OBJ_FN_TYPE) {
-			printf("Can't call value of type %i.", fn_var->value->type);
-			return NULL;
+			log_error("Can't call value of type %i.", fn_var->value->type);
+			Error_throw(1);
 		}
 		
 		Function* function = fn_var->value->value.function;
@@ -205,11 +205,11 @@ Value* Value_evaluate(ASTValue* value, Block* block) {
 				
 				return function->code.native(block->scope, argument_list);
 			} else { // TODO MAPPING
-				return NULL;
+				Error_throw(1);
 			}
 		} else {
-			printf("TODO: IMPLEMENT NON-NATIVE FUNCTION!\n");
-			return NULL;
+			log_error("TODO: IMPLEMENT NON-NATIVE FUNCTION!");
+			Error_throw(1);
 			//return Block_evaluate();
 		}
 		
@@ -220,12 +220,12 @@ Value* Value_evaluate(ASTValue* value, Block* block) {
 		Value* left = Value_evaluate(bin_expr->left, block);
 		Value* right = Value_evaluate(bin_expr->right, block);
 		int op = bin_expr->op;
-		printf("OPERATOR %i\n", op);
+		log_info("OPERATOR %i", op);
 		if(op == AST_PLUS_OP) {
 			if(left->type == OBJ_STRING_TYPE) {
 				if(right->type != OBJ_STRING_TYPE) {
-					printf("Cannot add non-string to string!\n");
-					return NULL;
+					log_error("Cannot add non-string to string!");
+					Error_throw(1);
 				}
 				char string[strlen(left->value.string) + strlen(right->value.string)];
 				strcpy(string, left->value.string);
@@ -239,25 +239,25 @@ Value* Value_evaluate(ASTValue* value, Block* block) {
 			} else if (left->type == OBJ_NUMBER_TYPE) {
 				double l = *(double*)Value_get(left);
 				double r = *(double*)Value_get(right);
-				printf("%f + %f = %f\n", l, r, l + r);
+				log_info("%f + %f = %f", l, r, l + r);
 				
 				Value_destroy(left);
 				Value_destroy(right);
 				return Number_create(l + r);
 			} else {
-				printf("Error on binary evaluation, left: %i, right: %i\n", left->type, right->type);
+				log_error("Error on binary evaluation, left: %i, right: %i", left->type, right->type);
 				
 				Value_destroy(left);
 				Value_destroy(right);
-				return NULL;
+				Error_throw(1);
 			}
 		} else {
 			if(left->type != OBJ_NUMBER_TYPE || right->type != OBJ_NUMBER_TYPE) {
-				printf("Binary expression requires number!\n");
+				log_error("Binary expression requires number!");
 				
 				Value_destroy(left);
 				Value_destroy(right);
-				return NULL;
+				Error_throw(1);
 			}
 			
 			double l = *(double*)Value_get(left);
@@ -271,9 +271,9 @@ Value* Value_evaluate(ASTValue* value, Block* block) {
 			else if(op == AST_MULT_OP)
 				return Number_create(l * r);
 			else if(op == AST_DIV_OP) {
-				if(r == 0) { // TODO ERROR
-					printf("Division by zero not allowed!\n");
-					return NULL;
+				if(r == 0) {
+					log_info("Division by zero not allowed!");
+					Error_throw(1);
 				}
 				return Number_create(l / r);
 			}

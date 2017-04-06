@@ -1,3 +1,4 @@
+#include "../log.c/src/log.h"
 #include "../Object.h"
 #include "../Interpreter.h"
 
@@ -14,7 +15,7 @@ Value* fn_print(Scope* scope, ArgumentList* arguments) {
 	} else if (first->type == OBJ_NUMBER_TYPE) {
 		printf("%f\n", *(first->value.number));
 	} else { // TODO ERROR
-		printf("ERROR UNSUPPORTED TYPE %i!\n", first->type);
+		log_error("ERROR UNSUPPORTED TYPE %i!", first->type);
 	}
 	
 	return NULL;

@@ -2,6 +2,8 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include "log.c/src/log.h"
+#include "Error.h"
 #include "Object.h"
 #include "Interpreter.h"
 
@@ -106,6 +108,8 @@ void Value_destroy(Value* value) {
 		Object_destroy(value->value.object);
 	} else if(value->type == OBJ_ARRAY_TYPE) {
 		Array_destroy(value->value.array);
+	} else if(value->type == OBJ_FN_TYPE) {
+		Function_destroy(value->value.function);
 	}
 	free(value);
 }
@@ -145,7 +149,8 @@ Array* Array_create() {
 	
 	array->elements = (ArrayElement**)malloc(sizeof(ArrayElement*) * array->capacity);
 	if(array->elements == NULL) {
-		printf("Error on malloc'ing array\n");
+		log_error("Error on malloc'ing array");
+		Error_throw(1);
 	}
 	
 	return array;
@@ -155,7 +160,8 @@ void Array_push(Array* array, ArrayElement* arrayElement) {
 		array->capacity *= 2;
 		void* temp_elements = (ArrayElement**)realloc(array->elements, sizeof(ArrayElement*) * array->capacity);
 		if(temp_elements == NULL) {
-			printf("Error on realloc'ing new array\n");
+			log_error("Error on realloc'ing new array");
+			Error_throw(1);
 		} else {
 			array->elements = temp_elements;
 		}
@@ -227,7 +233,7 @@ Argument* ArgumentList_get_by_index(ArgumentList* argument_list, int index) {
 	int i;
 	// 0 <= 0 -> 
 	for(i = 0, current = argument_list->first; i <= index; ++i) {
-		//printf("I %i\n", i);
+		//log_info("I %i\n", i);
 		if(current == NULL) {
 			break;
 		} else if (i == index) {
@@ -236,7 +242,6 @@ Argument* ArgumentList_get_by_index(ArgumentList* argument_list, int index) {
 			current = current->next;
 		}
 	}
-	printf("NONE!");
 	return NULL;
 }
 void ArgumentList_set(ArgumentList* argument_list, Argument* argument) {
@@ -285,7 +290,8 @@ Function* NativeFunction_create(Value* (*native)(struct Scope* scope, ArgumentLi
 void Function_destroy(Function* function) {
 	if(function->type == OBJ_FN_REGULAR)
 		Block_destroy(function->code.block);
-	ArgumentList_destroy(function->arguments);
+	if(function->arguments != NULL)
+		ArgumentList_destroy(function->arguments);
 	free(function);
 }
 Function* Function_inherit(Function* function) {

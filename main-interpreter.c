@@ -1,4 +1,6 @@
 #include <stdio.h>
+#include "log.c/src/log.c"
+#include "Error.c"
 #include "AST.c"
 #include "Object.c"
 #include "Lexer.c"
@@ -6,24 +8,36 @@
 #include "Interpreter.c"
 
 int main() {
-	Lexer* lexer = Lexer_create("a=10;10*10;");
-	//Lexer* lexer = Lexer_create("1+1;");
-	Lexer_parse(lexer);
+	Lexer* lexer = NULL;
+	Parser* parser = NULL;
+	Interpreter* interpreter = NULL;
 	
-	printf("----------------------------------------\n");
-	
-	Parser* parser = Parser_create(lexer->first);
-	Parser_parse(parser);
-	
-	printf("----------------------------------------\n");
-	
-	Scope* scope = Scope_create();
-	Program* program = Program_create(parser->program, scope);
-	Interpreter* interpreter = Interpreter_create(program);
-	Interpreter_interpret(interpreter);
-	
-	Lexer_destroy(lexer);
-	Parser_destroy(parser);
+	if(setjmp(env) == 0) {
+		lexer = Lexer_create("print(10 + 10);");
+		Lexer_parse(lexer);
+		
+		printf("----------------------------------------\n");
+		
+		parser = Parser_create(lexer->first);
+		Parser_parse(parser);
+		
+		printf("----------------------------------------\n");
+		
+		Scope* scope = Scope_create();
+		Program* program = Program_create(parser->program, scope);
+		interpreter = Interpreter_create(program);
+		Interpreter_interpret(interpreter);
+		
+		printf("----------------------------------------\n");
+		Lexer_destroy(lexer);
+		Parser_destroy(parser);
+		Interpreter_destroy(interpreter);
+	} else {
+		printf("----------------------------------------\n");
+		if(lexer != NULL) Lexer_destroy(lexer);
+		if(parser != NULL) Parser_destroy(parser);
+		if(interpreter != NULL) Interpreter_destroy(interpreter);
+	}
 	
 	return 0;
 }

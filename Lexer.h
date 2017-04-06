@@ -1,4 +1,6 @@
-#pragma once
+#ifndef LEXER_H
+#define LEXER_H
+
 #define TOK_STRING_TYPE 0
 #define TOK_NUMBER_TYPE 1
 #define TOK_KEYWORD_TYPE 2
@@ -42,3 +44,5 @@ void Lexer_ignore_whitespace(Lexer* lexer);
 
 Token* Token_create(int type, char* value);
 void Token_destroy(Token* token);
+
+#endif
