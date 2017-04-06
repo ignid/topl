@@ -175,14 +175,16 @@ ASTStatement* ASTStatement_create() {
 }
 void ASTStatement_destroy(ASTStatement* statement) {
 	if(statement->type == AST_DECL_STATEMENT) {
-		log_info("AST_DECL_STMT FREE");
 		ASTValue_destroy(statement->statement.declaration->left);
 		ASTValue_destroy(statement->statement.declaration->right);
 		free(statement->statement.declaration);
 	} else if(statement->type == AST_EXPR_STATEMENT) {
-		log_info("AST_EXPR_STMT FREE");
 		ASTValue_destroy(statement->statement.expression->expression);
 		free(statement->statement.expression);
+	} else if(statement->type == AST_IF_STATEMENT) {
+		ASTValue_destroy(statement->statement.ifelse->expression);
+		ASTBlock_destroy(statement->statement.ifelse->block);
+		free(statement->statement.ifelse);
 	}
 	free(statement);
 }
@@ -201,15 +203,13 @@ ASTStatement* ASTExpressionStatement_create(ASTValue* expression) {
 	statement->statement.expression->expression = expression;
 	return statement;
 }
-void* ASTStatement_get(ASTStatement* statement) {
-	int type = statement->type;
-	if(type == AST_DECL_STATEMENT) {
-		return statement->statement.declaration;
-	} else if (type == AST_EXPR_STATEMENT) {
-		return statement->statement.expression;
-	} else {
-		return NULL;
-	}
+ASTStatement* ASTIfStatement_create(ASTValue* expression, ASTBlock* block) {
+	ASTStatement* statement = ASTStatement_create();
+	statement->type = AST_IF_STATEMENT;
+	statement->statement.ifelse = (ASTIfStatement*)malloc(sizeof(ASTIfStatement));
+	statement->statement.ifelse->expression = expression;
+	statement->statement.ifelse->block = block;
+	return statement;
 }
 
 ASTBlock* ASTBlock_create() {

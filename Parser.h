@@ -36,11 +36,14 @@ ASTObject* Parser_parse_object(Parser* parser);
 ASTStatement* Parser_parse_statement(Parser* parser);
 ASTStatement* Parser_parse_declaration_stmt(Parser* parser);
 ASTStatement* Parser_parse_expression_stmt(Parser* parser);
+ASTStatement* Parser_parse_if_stmt(Parser* parser);
+
+ASTBlock* Parser_parse_block(Parser* parser);
 
 ASTProgram* Parser_parse_program(Parser* parser);
 
 void Parser_parse_EOS(Parser* parser);
 
-Token* Parser_advance(Parser* parser);
+void Parser_advance(Parser* parser);
 
 #endif

@@ -7,7 +7,6 @@
 #include "Lexer.c"
 #include "Parser.c"
 #include "Interpreter.c"
-#define BUFFER_SIZE 1024
 
 void help() {
 	printf("Usage:\n");
@@ -31,21 +30,21 @@ int main(int argc, char* argv[]) {
 		log_set_quiet(1);
 	}
 	
-	FILE* file;
-	if ( (file = fopen(filename,"rb")) == NULL ){
+	FILE *f;
+	if ( (f = fopen(filename,"rb")) == NULL ){
 		printf("Error loading file!\n");
 		exit(1);
 	}
 	
-	
-	fseek(file, 0, SEEK_END);
-	long fsize = ftell(file);
-	fseek(file, 0, SEEK_SET);
-	
+	fseek(f, 0, SEEK_END);
+	long fsize = ftell(f);
+	fseek(f, 0, SEEK_SET);  //same as rewind(f);
+
 	char *string = malloc(fsize + 1);
-	fread(string, fsize, 1, file);
-	fclose(file);
-	string[fsize] = '\0';
+	fread(string, fsize, 1, f);
+	fclose(f);
+
+	string[fsize] = 0;
 	
 	Lexer* lexer = NULL;
 	Parser* parser = NULL;

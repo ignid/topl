@@ -32,6 +32,7 @@ struct ASTFunctionExpression;
 struct ASTDeclarationStatement;
 struct ASTExpressionStatement;
 struct ASTFunctionStatement;
+struct ASTIfStatement;
 struct ASTStatement;
 
 struct ASTProgram;
@@ -157,7 +158,8 @@ typedef struct ASTExpressionStatement {
 typedef struct ASTIfStatement {
 	
 	ASTValue* expression;
-	struct ASTStatement** body;
+	ASTBlock* block;
+	ASTBlock* block_else;
 	
 } ASTIfStatement;
 
@@ -167,7 +169,7 @@ typedef struct ASTStatement {
 	union {
 		ASTDeclarationStatement* declaration;
 		ASTExpressionStatement* expression;
-		//ASTIfStatement* if_;
+		ASTIfStatement* ifelse;
 	} statement;
 	int type;
 	
@@ -207,9 +209,9 @@ void ASTBinaryExpression_destroy(ASTBinaryExpression* bin_expr);
 
 ASTStatement* ASTStatement_create();
 void ASTStatement_destroy(ASTStatement* statement);
-void* ASTStatement_get(ASTStatement* statement);
 ASTStatement* ASTDeclarationStatement_create(ASTValue* left, ASTValue* right);
 ASTStatement* ASTExpressionStatement_create(ASTValue* expression);
+ASTStatement* ASTIfStatement_create(ASTValue* expression, ASTBlock* body);
 
 ASTBlock* ASTBlock_create();
 void ASTBlock_destroy(ASTBlock* block);

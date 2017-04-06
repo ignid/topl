@@ -1,0 +1,7 @@
+if(1) {
+	print("This should print");
+}
+
+if(0) {
+	print("This shouldn't print");
+}

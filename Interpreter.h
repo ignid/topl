@@ -75,6 +75,7 @@ void Block_evaluate(Block* block);
 Value* BlockStatement_evaluate(ASTBlockStatement* statement, Block* block);
 Value* Statement_evaluate(ASTStatement* statement, Block* block);
 Value* Value_evaluate(ASTValue* value, Block* block);
+int Value_is_true(Value* value);
 
 Program* Program_create(ASTProgram* program, Scope* scope);
 void Program_destroy(Program* program);

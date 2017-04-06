@@ -129,10 +129,9 @@ Value* BlockStatement_evaluate(ASTBlockStatement* statement, Block* block) {
 	return Statement_evaluate(statement->statement, block);
 }
 Value* Statement_evaluate(ASTStatement* statement, Block* block) {
-	// TODO free values malloc'd in this (done)
 	if(statement->type == AST_DECL_STATEMENT) {
 		log_info("Declaration Stmt");
-		ASTDeclarationStatement* stmt = (ASTDeclarationStatement*)ASTStatement_get(statement);
+		ASTDeclarationStatement* stmt = statement->statement.declaration;
 		
 		char* identifier = ASTValue_get(stmt->left);
 		log_info("DECL IDENTIFIER %s", ASTValue_get(stmt->left));
@@ -140,15 +139,23 @@ Value* Statement_evaluate(ASTStatement* statement, Block* block) {
 		Value* right = Value_evaluate(stmt->right, block);
 		Scope_set(block->scope, identifier, right);
 		
-		return NULL; // <-- FUCK YESS THIS FIXES EVERYTHING!!!!!!!
-		// I CANT BELIEVE I SPEND THIRTY MINS OF PULLING MUH HAIR BC THIS
+		return NULL;
 	} else if(statement->type == AST_EXPR_STATEMENT) {
 		log_info("Expression Stmt");
-		Value* value = Value_evaluate(
-			((ASTExpressionStatement*)ASTStatement_get(statement))->expression,
-			block
-		);
-		return value;
+		return Value_evaluate(statement->statement.expression->expression, block);
+	} else if(statement->type == AST_IF_STATEMENT) {
+		log_info("If stmt");
+		Value* expression = Value_evaluate(statement->statement.ifelse->expression, block);
+		if(Value_is_true(expression)) {
+			Block* b = Block_create(statement->statement.ifelse->block, block->scope);
+			Block_evaluate(b);
+			free(b);
+		} else { // TODO
+			return NULL;
+		}
+		return NULL;
+	} else {
+		log_error("Unsupported type %i", statement->type);
 	}
 }
 Value* Value_evaluate(ASTValue* value, Block* block) {
@@ -232,7 +239,6 @@ Value* Value_evaluate(ASTValue* value, Block* block) {
 				strcat(string, right->value.string);
 				Value* val = String_create(string);
 				
-				Value_destroy(string);
 				Value_destroy(left);
 				Value_destroy(right);
 				return val;
@@ -278,6 +284,19 @@ Value* Value_evaluate(ASTValue* value, Block* block) {
 				return Number_create(l / r);
 			}
 		}
+	}
+}
+int Value_is_true(Value* value) {
+	if(value->type == OBJ_STRING_TYPE) {
+		return strlen(value->value.string);
+	} else if (value->type == OBJ_NUMBER_TYPE) {
+		return *(value->value.number);
+	} else if(value->type == OBJ_OBJECT_TYPE) {
+		return 1;
+	} else if(value->type == OBJ_ARRAY_TYPE) {
+		return 1; // TODO ARRAY
+	} else if(value->type == OBJ_FN_TYPE) {
+		return 0;
 	}
 }
 

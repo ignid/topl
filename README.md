@@ -31,11 +31,12 @@ gcc main.c -o main -w
 	- [x] Declaration statements
 	- [x] Expression statements
 	- [ ] Function declaration statements
-	- [ ] If statements
+	- [x] If statements
 	- [ ] While statements
 - [x] Expressions
 	- [ ] Unary expressions
 	- [x] Function call expressions
+	- [ ] Equality expressions (==, !=)
 - [ ] Data structures
 	- [x] Basic structures (numbers, strings)
 	- [ ] Objects (prototypical inheritance like in JS)

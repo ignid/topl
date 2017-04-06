@@ -7,7 +7,7 @@
 Lexer* Lexer_create(char* source) {
 	Lexer* lexer = (Lexer*)malloc(sizeof(Lexer));
 	
-	lexer->source = strdup(source);
+	lexer->source = source;
 	lexer->position = 0;
 	lexer->length = strlen(lexer->source);
 	
@@ -38,14 +38,9 @@ void Lexer_push(Lexer* lexer, Token* token) {
 	}
 }
 Token* Lexer_parse(Lexer* lexer) {
-	Token* next = NULL;
-	while(1) {
-		next = Lexer_parse_next(lexer);
-		if(next == NULL) {
-			break;
-		} else {
-			Lexer_push(lexer, next);
-		}
+	Token* token = NULL;
+	while( (token = Lexer_parse_next(lexer)) != NULL ) {
+		Lexer_push(lexer, token);
 	}
 	return lexer->first;
 }
@@ -82,65 +77,65 @@ Token* Lexer_parse_next(Lexer* lexer) {
 Token* Lexer_parse_string(Lexer* lexer) {
 	char start = lexer->source[lexer->position++];
 	char* string = (char*)malloc(1);
-	size_t length = 0;
+	size_t i = 0;
 	while(lexer->position < lexer->length) {
-		char current = lexer->source[lexer->position];
-		if(current == start) {
+		if(lexer->source[lexer->position] == start) {
 			lexer->position++;
 			break;
 		} else {
-			string = (char*)realloc(string, length + 1);
-			string[length++] = current;
-			lexer->position++;
+			string = (char*) realloc(string, i + 2);
+			string[i] = lexer->source[lexer->position++];
+			i++;
 		}
 	}
-	string[length] = '\0';
+	string[i] = '\0';
 	log_info("STRING %s", string);
 	return Token_create(TOK_STRING_TYPE, string);
 }
 Token* Lexer_parse_number(Lexer* lexer) {
 	char* string = (char*)malloc(1);
-	size_t length = 0;
+	size_t i = 0;
 	while(lexer->position < lexer->length) {
 		char current = lexer->source[lexer->position];
 		if(isdigit(current)) {
-			string = (char*)realloc(string, length + 1);
-			string[length++] = current;
+			string = (char*)realloc(string, i + 2);
+			string[i++] = current;
 			lexer->position++;
 		} else {
 			break;
 		}
 	}
-	string[length] = '\0';
+	string[i] = '\0';
 	log_info("NUMBER %s", string);
 	return Token_create(TOK_NUMBER_TYPE, string);
 }
 Token* Lexer_parse_identifier(Lexer* lexer) {
 	char* string = (char*)malloc(1);
-	size_t length = 0;
+	size_t i = 0;
 	while(lexer->position < lexer->length) {
 		char current = lexer->source[lexer->position];
-		if(isalpha(current)) {
-			string = (char*)realloc(string, length + 1);
-			string[length++] = current;
+		if(isalnum(current)) {
+			string = (char*)realloc(string, i + 1);
+			string[i++] = current;
 			lexer->position++;
 		} else {
 			break;
 		}
 	}
-	string[length] = '\0';
+	string[i] = '\0';
 	log_info("IDENTIFIER %s", string);
 	// keywords: true, false, null
-	if(strcmp(string, "false") == 0 ||
+	if( strcmp(string, "false") == 0 ||
 		strcmp(string, "true") == 0 ||
-		strcmp(string, "null") == 0) {
+		strcmp(string, "null") == 0 ||
+		strcmp(string, "if") == 0 ) {
 		return Token_create(TOK_KEYWORD_TYPE, string);
 	}
 	return Token_create(TOK_IDENTIFIER_TYPE, string);
 }
 Token* Lexer_parse_operator(Lexer* lexer) {
 	char current = lexer->source[lexer->position++];
-	char* string = malloc(2);
+	char* string = (char*)malloc(2);
 	string[0] = current;
 	string[1] = '\0';
 	log_info("OPERATOR %s", string);
@@ -151,7 +146,6 @@ void Lexer_ignore_whitespace(Lexer* lexer) {
 		char current = lexer->source[lexer->position];
 		if(isspace(current)) {
 			lexer->position++;
-			continue;
 		} else {
 			return;
 		}

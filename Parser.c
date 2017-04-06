@@ -195,13 +195,17 @@ ASTStatement* Parser_parse_statement(Parser* parser) {
 		current->next != NULL && strcmp(current->next->value, "=") == 0 ) {
 		log_info("declaration");
 		return Parser_parse_declaration_stmt(parser);
+	} else if (strcmp(current->value, "if") == 0) {
+		log_info("if");
+		return Parser_parse_if_stmt(parser);
 	} else {
 		log_info("expression");
 		return Parser_parse_expression_stmt(parser);
 	}
 }
 ASTStatement* Parser_parse_declaration_stmt(Parser* parser) {
-	char* identifier = Parser_advance(parser)->value;
+	char* identifier = parser->current->value;
+	Parser_advance(parser);
 	log_info("DECL IDENTIFIER = %s", identifier);
 	Parser_advance(parser); // =
 	ASTValue* expression = Parser_parse_binary_expression(parser);
@@ -212,6 +216,54 @@ ASTStatement* Parser_parse_expression_stmt(Parser* parser) {
 	ASTValue* expression = Parser_parse_binary_expression(parser);
 	Parser_parse_EOS(parser);
 	return ASTExpressionStatement_create(expression);
+}
+ASTStatement* Parser_parse_if_stmt(Parser* parser) {
+	Parser_advance(parser); // if
+	if(parser->current == NULL || strcmp(parser->current->value, "(") != 0) {
+		log_error("missing ( before condition");
+		Error_throw(1);
+	}
+	Parser_advance(parser); // (
+	
+	ASTValue* expression = Parser_parse_binary_expression(parser);
+	
+	if(parser->current == NULL || strcmp(parser->current->value, ")") != 0) {
+		log_error("missing ) after condition");
+		Error_throw(1);
+	}
+	Parser_advance(parser); // )
+	
+	ASTBlock* block = Parser_parse_block(parser);
+	
+	return ASTIfStatement_create(expression, block);
+}
+
+ASTBlock* Parser_parse_block(Parser* parser) {
+	if(parser->current == NULL) {
+		log_error("expected expression");
+		Error_throw(1);
+	}
+	
+	ASTBlock* block = ASTBlock_create();
+	//log_error("%s", parser->current->value);
+	if(strcmp(parser->current->value, "{") == 0) {
+		Parser_advance(parser);
+		ASTStatement* statement;
+		
+		while ( (parser->current != NULL && strcmp(parser->current->value, "}") != 0) &&
+			(statement = Parser_parse_statement(parser)) != NULL ) {
+			ASTBlock_push(block, ASTBlockStatement_create(statement));
+		}
+		
+		if(parser->current == NULL || strcmp(parser->current->value, "}") != 0) {
+			log_error("missing } after block");
+			Error_throw(1);
+		}
+		Parser_advance(parser); // }
+	} else {
+		ASTBlock_push(block, ASTBlockStatement_create(Parser_parse_statement(parser)));
+	}
+	return block;
 }
 
 ASTProgram* Parser_parse_program(Parser* parser) {
@@ -228,7 +280,10 @@ void Parser_parse_EOS(Parser* parser) { // end of statement: could be end of fil
 	Token* current = parser->current;
 	log_info("EOS");
 	if(current == NULL) return;
+	//if(current == NULL || strcmp(current->value, "}") == 0) return;
 	if(strcmp(current->value, ";") == 0) {
+		Parser_advance(parser);
+	} else if (strcmp(current->value, "}") == 0) {
 		Parser_advance(parser);
 	} else {
 		log_error("Unexpected character %s", current->value);
@@ -236,8 +291,6 @@ void Parser_parse_EOS(Parser* parser) { // end of statement: could be end of fil
 	}
 }
 
-Token* Parser_advance(Parser* parser) {
-	Token* last = parser->current;
+void Parser_advance(Parser* parser) {
 	parser->current = parser->current->next;
-	return last;
 }
