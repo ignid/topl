@@ -55,8 +55,9 @@ Token* Lexer_parse_next(Lexer* lexer) {
 	
 	if (
 		current == '{' || current == '}' || current == ':' ||
-		current == '+' || current == '-' || current == '*' || current == '/' ||
+		current == '+' || current == '-' || current == '*' || current == '/' || current == '%' ||
 		current == '(' || current == ')' ||
+		current == '&' || current == '|' ||
 		current == '<' || current == '>' || current == '!' || current == '=' ||
 		current == ',' || current == ';'
 	) {
@@ -67,10 +68,9 @@ Token* Lexer_parse_next(Lexer* lexer) {
 		return Lexer_parse_number(lexer);
 	} else if (isalpha(current)) {
 		return Lexer_parse_identifier(lexer);
-	} else if (current == '\0') {
-	} else {
-		log_error("Unexpected %c", current);
-		Error_throw(1);
+	} else if (current != '\0') {
+		log_error("Unexpected character %c", current);
+		Error_throw();
 	}
 	return NULL;
 }
@@ -82,6 +82,18 @@ Token* Lexer_parse_string(Lexer* lexer) {
 		if(lexer->source[lexer->position] == start) {
 			lexer->position++;
 			break;
+		} else if (lexer->source[lexer->position] == '\\') {
+			lexer->position++;
+			string = (char*) realloc(string, i + 2);
+			if(lexer->position >= lexer->length) {
+				log_error("Unexpected end of string.");
+				Error_throw();
+			} else if (lexer->source[lexer->position] == 'n') {
+				string[i] = '\n';
+			} else {
+				string[i] = lexer->source[lexer->position];
+			}
+			lexer->position++;
 		} else {
 			string = (char*) realloc(string, i + 2);
 			string[i] = lexer->source[lexer->position++];
@@ -104,10 +116,27 @@ Token* Lexer_parse_number(Lexer* lexer) {
 		} else {
 			break;
 		}
+		string[i] = '\0';
+		log_debug("INTEGER %s", string);
 	}
-	string[i] = '\0';
-	log_debug("NUMBER %s", string);
-	return Token_create(TOK_NUMBER_TYPE, string);
+	if(lexer->position < lexer->length && lexer->source[lexer->position] == '.') {
+		lexer->position++;
+		char current = lexer->source[lexer->position];
+		while(lexer->position < lexer->length) {
+			if(isdigit(current)) {
+				string = (char*)realloc(string, i + 2);
+				string[i++] = current;
+				lexer->position++;
+			} else {
+				break;
+			}
+		}
+		string[i] = '\0';
+		log_debug("NUMBER %s", string);
+		return Token_create(TOK_NUMBER_TYPE, string);
+	} else {
+		return Token_create(TOK_INTEGER_TYPE, string);
+	}
 }
 Token* Lexer_parse_identifier(Lexer* lexer) {
 	char* string = (char*)malloc(1);
@@ -124,11 +153,11 @@ Token* Lexer_parse_identifier(Lexer* lexer) {
 	}
 	string[i] = '\0';
 	log_debug("IDENTIFIER %s", string);
-	// keywords: true, false, null
 	if( strcmp(string, "false") == 0 ||
 		strcmp(string, "true") == 0 ||
 		strcmp(string, "null") == 0 ||
-		strcmp(string, "if") == 0 ) {
+		strcmp(string, "if") == 0 ||
+		strcmp(string, "while") == 0) {
 		return Token_create(TOK_KEYWORD_TYPE, string);
 	}
 	return Token_create(TOK_IDENTIFIER_TYPE, string);
@@ -140,7 +169,9 @@ Token* Lexer_parse_operator(Lexer* lexer) {
 		if( (current == '<' && next == '=') ||
 			(current == '>' && next == '=') ||
 			(current == '=' && next == '=') ||
-			(current == '!' && next == '=') ) {
+			(current == '!' && next == '=') ||
+			(current == '&' && next == '&') ||
+			(current == '|' && next == '|') ) {
 			lexer->position++;
 			char* string = (char*)malloc(3);
 			string[0] = current;

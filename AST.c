@@ -17,8 +17,7 @@ ASTValue* ASTString_create(char* string) {
 }
 ASTValue* ASTNumber_create(double number) {
 	ASTValue* value = ASTValue_create();
-	value->value.number = (double*)malloc(sizeof(double));
-	*value->value.number = number;
+	value->value.number = number;
 	value->type = AST_NUMBER_VALUE;
 	return value;
 }
@@ -40,6 +39,12 @@ ASTValue* ASTValue_fn_expr_create(ASTFunctionExpression* fn_expr) {
 	value->type = AST_FN_VALUE;
 	return value;
 }
+ASTValue* ASTInteger_create(int integer) {
+	ASTValue* value = ASTValue_create();
+	value->value.integer = integer;
+	value->type = AST_INTEGER_VALUE;
+	return value;
+}
 ASTValue* ASTValue_create() {
 	ASTValue* value = (ASTValue*)malloc(sizeof(ASTValue));
 	value->type = AST_UNDEFINED_VALUE;
@@ -49,7 +54,7 @@ void ASTValue_destroy(ASTValue* value) {
 	if(value->type == AST_STRING_VALUE || value->type == AST_IDENTIFIER_VALUE) {
 		free(value->value.string);
 	} else if(value->type == AST_NUMBER_VALUE) {
-		free(value->value.number);
+		
 	} else if(value->type == AST_OBJECT_VALUE) {
 		ASTObject_destroy(value->value.object);
 	} else if(value->type == AST_ARRAY_VALUE) {
@@ -58,24 +63,6 @@ void ASTValue_destroy(ASTValue* value) {
 		ASTBinaryExpression_destroy(value->value.bin_expr);
 	}
 	free(value);
-}
-void* ASTValue_get(ASTValue* value) {
-	int type = value->type;
-	if(type == AST_STRING_VALUE || type == AST_IDENTIFIER_VALUE) {
-		return (void*)value->value.string;
-	} else if(type == AST_NUMBER_VALUE) {
-		return (void*)value->value.number;
-	} else if(type == AST_OBJECT_VALUE) {
-		return (void*)value->value.object;
-	} else if(type == AST_ARRAY_VALUE) {
-		return (void*)value->value.array;
-	} else if(type == AST_BINEXPR_VALUE) {
-		return (void*)value->value.bin_expr;
-	} else if(type == AST_FN_VALUE) {
-		return (void*)value->value.fn_expr;
-	} else {
-		return NULL;
-	}
 }
 
 ASTObjectPair* ASTObjectPair_create(char* key, ASTValue* value) {
@@ -117,7 +104,7 @@ void ASTObject_set(ASTObject* object, ASTObjectPair* objectPair) {
 			object->last = objectPair;
 		} else {
 			log_error("ERROR! AST OBJECT REDEFINITION!");
-			Error_throw(1);
+			Error_throw();
 		}
 	}
 }
@@ -210,6 +197,14 @@ ASTStatement* ASTIfStatement_create(ASTValue* expression, ASTBlock* block, ASTBl
 	statement->statement.ifelse->expression = expression;
 	statement->statement.ifelse->block = block;
 	statement->statement.ifelse->block_else = block_else;
+	return statement;
+}
+ASTStatement* ASTWhileStatement_create(ASTValue* expression, ASTBlock* block) {
+	ASTStatement* statement = ASTStatement_create();
+	statement->type = AST_WHILE_STATEMENT;
+	statement->statement.whiles = (ASTWhileStatement*)malloc(sizeof(ASTWhileStatement));
+	statement->statement.whiles->expression = expression;
+	statement->statement.whiles->block = block;
 	return statement;
 }
 

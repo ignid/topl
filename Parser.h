@@ -27,6 +27,8 @@ ASTArgumentList* Parser_parse_call_argument_list(Parser* parser);
 ASTValue* Parser_parse_call_expression(Parser* parser);
 
 ASTValue* Parser_parse_binary_expression(Parser* parser);
+ASTValue* Parser_parse_logical_or_expression(Parser* parser);
+ASTValue* Parser_parse_logical_and_expression(Parser* parser);
 ASTValue* Parser_parse_equality_expression(Parser* parser);
 ASTValue* Parser_parse_comparison_expression(Parser* parser);
 ASTValue* Parser_parse_additive_expression(Parser* parser);
@@ -39,6 +41,7 @@ ASTStatement* Parser_parse_statement(Parser* parser);
 ASTStatement* Parser_parse_declaration_stmt(Parser* parser);
 ASTStatement* Parser_parse_expression_stmt(Parser* parser);
 ASTStatement* Parser_parse_if_stmt(Parser* parser);
+ASTStatement* Parser_parse_while_stmt(Parser* parser);
 
 ASTBlock* Parser_parse_block(Parser* parser);
 

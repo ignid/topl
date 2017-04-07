@@ -25,12 +25,12 @@ ObjectPair* Object_get_pair(Object* object, char* key) {
 	}
 	return NULL;
 }
-void* Object_get(Object* object, char* key) {
+Value* Object_get(Object* object, char* key) {
 	ObjectPair* pair = Object_get_pair(object, key);
 	if(pair == NULL) {
 		return NULL;
 	} else {
-		return Value_get(pair->value);
+		return pair->value;
 	}
 }
 void Object_set(Object* object, ObjectPair* objectPair) {
@@ -79,8 +79,7 @@ Value* String_create(char* string) {
 }
 Value* Number_create(double number) {
 	Value* value = Value_create();
-	value->value.number = (double*)malloc(sizeof(double));
-	*value->value.number = number;
+	value->value.number = number;
 	value->type = OBJ_NUMBER_TYPE;
 	return value;
 }
@@ -96,14 +95,18 @@ Value* Value_fn_create(Function* function) {
 	value->type = OBJ_FN_TYPE;
 	return value;
 }
+Value* Integer_create(int integer) {
+	Value* value = Value_create();
+	value->value.integer = integer;
+	value->type = OBJ_INTEGER_TYPE;
+	return value;
+}
 Value* Value_create() {
 	return (Value*)malloc(sizeof(Value*));
 }
 void Value_destroy(Value* value) {
 	if(value->type == OBJ_STRING_TYPE) {
 		free(value->value.string);
-	} else if(value->type == OBJ_NUMBER_TYPE) {
-		free(value->value.number);
 	} else if(value->type == OBJ_OBJECT_TYPE) {
 		Object_destroy(value->value.object);
 	} else if(value->type == OBJ_ARRAY_TYPE) {
@@ -112,20 +115,6 @@ void Value_destroy(Value* value) {
 		Function_destroy(value->value.function);
 	}
 	free(value);
-}
-void* Value_get(Value* value) {
-	int type = value->type;
-	if(type == OBJ_STRING_TYPE) {
-		return (void*)value->value.string;
-	} else if(type == OBJ_NUMBER_TYPE) {
-		return (void*)value->value.number;
-	} else if(type == OBJ_OBJECT_TYPE) {
-		return (void*)value->value.object;
-	} else if(type == OBJ_ARRAY_TYPE) {
-		return (void*)value->value.array;
-	} else {
-		return NULL;
-	}
 }
 
 // array elements
@@ -150,7 +139,7 @@ Array* Array_create() {
 	array->elements = (ArrayElement**)malloc(sizeof(ArrayElement*) * array->capacity);
 	if(array->elements == NULL) {
 		log_error("Error on malloc'ing array");
-		Error_throw(1);
+		Error_throw();
 	}
 	
 	return array;
@@ -161,7 +150,7 @@ void Array_push(Array* array, ArrayElement* arrayElement) {
 		void* temp_elements = (ArrayElement**)realloc(array->elements, sizeof(ArrayElement*) * array->capacity);
 		if(temp_elements == NULL) {
 			log_error("Error on realloc'ing new array");
-			Error_throw(1);
+			Error_throw();
 		} else {
 			array->elements = temp_elements;
 		}
@@ -173,8 +162,8 @@ void Array_push(Array* array, ArrayElement* arrayElement) {
 ArrayElement* Array_get_element(Array* array, int id) {
 	return array->elements[id];
 }
-void* Array_get(Array* array, int id) {
-	return Value_get(Array_get_element(array, id)->value);
+Value* Array_get(Array* array, int id) {
+	return Array_get_element(array, id)->value;
 }
 void Array_destroy(Array* array) {
 	size_t i;
@@ -219,8 +208,8 @@ Argument* ArgumentList_get(ArgumentList* argument_list, Value* key) {
 	Argument* current = argument_list->first;
 	while(current != NULL) {
 		// TODO value_compare?
-		if( (current->key->type == OBJ_STRING_TYPE && key->type == OBJ_STRING_TYPE && strcmp(Value_get(current->key), Value_get(key)) == 0) ||
-			(current->key->type == OBJ_NUMBER_TYPE && key->type == OBJ_NUMBER_TYPE && (*(double*)Value_get(current->key) == *(double*)Value_get(key)) ) ) {
+		if( (current->key->type == OBJ_STRING_TYPE && key->type == OBJ_STRING_TYPE && strcmp(current->key->value.string, key->value.string) == 0) ||
+			(current->key->type == OBJ_NUMBER_TYPE && key->type == OBJ_NUMBER_TYPE && (current->key->value.number == key->value.number) ) ) {
 			return current;
 		} else {
 			current = current->next;

@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#define LOG_USE_COLOR 1
 #include "log.c/src/log.c"
 #include "Error.c"
 #include "AST.c"
@@ -24,15 +25,14 @@ int main(int argc, char* argv[]) {
 	char* filename;
 	if(strcmp(argv[1], "d") == 0) {
 		filename = argv[2];
-		log_set_quiet(0);
 	} else {
 		filename = argv[1];
-		log_set_quiet(1);
+		log_set_level(LOG_ERROR);
 	}
 	
 	FILE *f;
 	if ( (f = fopen(filename,"rb")) == NULL ){
-		printf("Error loading file!\n");
+		log_fatal("Error loading file!\n");
 		exit(1);
 	}
 	

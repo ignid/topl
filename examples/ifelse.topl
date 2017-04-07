@@ -1,17 +1,25 @@
 if(1) {
-	print("This should print");
+	print("1 is true");
 }
 
 if(0) {
-	print("This shouldn't print");
+	print("0 is true");
 } else {
-	print("This should print too");
+	print("0 is false");
 }
 
 if(0 == 0) {
-	print("This should print also");
+	print("0 == 0 is true");
 }
 
 if(10 != 1) {
-	print("This should also print");
+	print("10 != 1 is true");
+}
+
+if(10 == 0) {
+	print("10 == 0 is true");
+}
+
+if("hello" == "hello") {
+	print("'hello' == 'hello' is true");
 }

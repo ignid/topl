@@ -6,6 +6,7 @@
 #define TOK_KEYWORD_TYPE 2
 #define TOK_OPERATOR_TYPE 3
 #define TOK_IDENTIFIER_TYPE 4
+#define TOK_INTEGER_TYPE 5
 
 // ----------------------------------------
 struct Token;

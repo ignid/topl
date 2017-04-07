@@ -1,3 +1,4 @@
+#include <math.h>
 #include "log.c/src/log.h"
 #include "Error.h"
 #include "AST.h"
@@ -91,7 +92,7 @@ void Scope_set(Scope* scope, char* key, Value* value) {
 		ScopeVariable* found = Scope_get(scope, key);
 		if(found == NULL) {
 			Scope_push(scope, key, value);
-		} else {
+		} else { // TODO Value_mutate?
 			Value_destroy(found->value);
 			found->value = value;
 		}
@@ -133,8 +134,8 @@ Value* Statement_evaluate(ASTStatement* statement, Block* block) {
 		log_debug("Declaration Stmt");
 		ASTDeclarationStatement* stmt = statement->statement.declaration;
 		
-		char* identifier = ASTValue_get(stmt->left);
-		log_debug("DECL IDENTIFIER %s", ASTValue_get(stmt->left));
+		char* identifier = stmt->left->value.string;
+		log_debug("DECL IDENTIFIER %s", identifier);
 		
 		Value* right = Value_evaluate(stmt->right, block);
 		Scope_set(block->scope, identifier, right);
@@ -157,8 +158,19 @@ Value* Statement_evaluate(ASTStatement* statement, Block* block) {
 			free(b);
 		}
 		return NULL;
+	} else if(statement->type == AST_WHILE_STATEMENT) {
+		log_debug("While stmt");
+		Value* expression;
+		Block* b = Block_create(statement->statement.whiles->block, block->scope);
+		while( (expression = Value_evaluate(statement->statement.whiles->expression, block)) &&
+			Value_is_true(expression) ) {
+			Block_evaluate(b);
+		}
+		free(b);
+		return NULL;
 	} else {
 		log_error("Unsupported type %i", statement->type);
+		Error_throw();
 	}
 }
 Value* Value_evaluate(ASTValue* value, Block* block) {
@@ -166,28 +178,46 @@ Value* Value_evaluate(ASTValue* value, Block* block) {
 	if(value->type == AST_STRING_VALUE) {
 		log_debug("STRING VALUE %s", value->value.string);
 		return String_create(value->value.string);
+	} else if (value->type == AST_INTEGER_VALUE) {
+		log_debug("INTEGER VALUE %i", value->value.integer);
+		return Integer_create(value->value.integer);
 	} else if (value->type == AST_NUMBER_VALUE) {
-		log_debug("NUMBER VALUE %f", *(double*)(value->value.number));
-		return Number_create(*value->value.number);
+		log_debug("NUMBER VALUE %f", value->value.number);
+		return Number_create(value->value.number);
 	} else if (value->type == AST_OBJECT_VALUE) {
 		// TODO
 	} else if (value->type == AST_ARRAY_VALUE) {
 		// TODO
 	} else if (value->type == AST_IDENTIFIER_VALUE) {
+		// clone value to not double free
 		log_debug("IDENTIFIER VALUE %s", value->value.string);
-		return Scope_get(block->scope, value->value.string)->value;
+		Value* val = Scope_get(block->scope, value->value.string)->value;
+		if(val->type == OBJ_STRING_TYPE) {
+			return String_create(val->value.string);
+		} else if (val->type == OBJ_INTEGER_TYPE) {
+			return Integer_create(val->value.integer);
+		} else if (val->type == OBJ_NUMBER_TYPE) {
+			return Number_create(val->value.number);
+		} else if(val->type == OBJ_OBJECT_TYPE) {
+			return Object_create(val->value.object);
+		} else if(val->type == OBJ_ARRAY_TYPE) {
+			return Array_create(val->value.array);
+		} else if(val->type == OBJ_FN_TYPE) {
+			// TODO
+		}
+		return NULL;
 	} else if (value->type == AST_FN_VALUE) {
 		log_debug("FUNCTION VALUE");
 		ASTFunctionExpression* fn_expr = value->value.fn_expr;
 		if(fn_expr->name->type != AST_IDENTIFIER_VALUE) {
 			log_error("Expected identifier value for fn_expr");
-			Error_throw(1);
+			Error_throw();
 		}
 		
 		ScopeVariable* fn_var = Scope_get(block->scope, fn_expr->name->value.string);
 		if(fn_var == NULL || fn_var->value->type != OBJ_FN_TYPE) {
 			log_error("Can't call value of type %i.", fn_var->value->type);
-			Error_throw(1);
+			Error_throw();
 		}
 		
 		Function* function = fn_var->value->value.function;
@@ -215,18 +245,18 @@ Value* Value_evaluate(ASTValue* value, Block* block) {
 				
 				return function->code.native(block->scope, argument_list);
 			} else { // TODO MAPPING
-				Error_throw(1);
+				Error_throw();
 			}
 		} else {
 			log_error("TODO: IMPLEMENT NON-NATIVE FUNCTION!");
-			Error_throw(1);
+			Error_throw();
 			//return Block_evaluate();
 		}
 		
 		return NULL;
 		
 	} else if (value->type == AST_BINEXPR_VALUE) {
-		ASTBinaryExpression* bin_expr = (ASTBinaryExpression*)ASTValue_get(value);
+		ASTBinaryExpression* bin_expr = value->value.bin_expr;
 		Value* left = Value_evaluate(bin_expr->left, block);
 		Value* right = Value_evaluate(bin_expr->right, block);
 		int op = bin_expr->op;
@@ -235,7 +265,7 @@ Value* Value_evaluate(ASTValue* value, Block* block) {
 			if(left->type == OBJ_STRING_TYPE) {
 				if(right->type != OBJ_STRING_TYPE) {
 					log_error("Cannot add non-string to string!");
-					Error_throw(1);
+					Error_throw();
 				}
 				char string[strlen(left->value.string) + strlen(right->value.string)];
 				strcpy(string, left->value.string);
@@ -246,19 +276,27 @@ Value* Value_evaluate(ASTValue* value, Block* block) {
 				Value_destroy(right);
 				return val;
 			} else if (left->type == OBJ_NUMBER_TYPE) {
-				double l = *(double*)Value_get(left);
-				double r = *(double*)Value_get(right);
+				double l = left->value.number;
+				double r = right->value.number;
 				log_debug("%f + %f = %f", l, r, l + r);
 				
 				Value_destroy(left);
 				Value_destroy(right);
 				return Number_create(l + r);
-			} else {
-				log_error("Error on binary evaluation, left: %i, right: %i", left->type, right->type);
+			} else if (left->type == OBJ_INTEGER_TYPE) {
+				int l = left->value.integer;
+				int r = right->value.integer;
+				log_debug("%i + %i = %i", l, r, l + r);
 				
 				Value_destroy(left);
 				Value_destroy(right);
-				Error_throw(1);
+				return Integer_create(l + r);
+			} else {
+				log_error("Incompatible type for binary expression, left: %i, right: %i", left->type, right->type);
+				
+				Value_destroy(left);
+				Value_destroy(right);
+				Error_throw();
 			}
 		} else if(op == AST_EQUAL_OP) {
 			int res = Value_compare(left, right);
@@ -266,55 +304,173 @@ Value* Value_evaluate(ASTValue* value, Block* block) {
 			
 			Value_destroy(left);
 			Value_destroy(right);
-			return Number_create(res);
+			return Integer_create(res);
 		} else if(op == AST_NOT_EQUAL_OP) {
 			int res = Value_compare(left, right);
 			log_debug("compare result %i", res);
 			
 			Value_destroy(left);
 			Value_destroy(right);
-			return Number_create(!res);
+			return Integer_create(!res);
+		} else if (
+			op == AST_LESS_OP ||
+			op == AST_MORE_OP ||
+			op == AST_LESS_EQ_OP ||
+			op == AST_MORE_EQ_OP
+		) {
+			if( !((left->type == OBJ_INTEGER_TYPE || left->type == OBJ_NUMBER_TYPE) ||
+				(right->type == OBJ_INTEGER_TYPE || right->type == OBJ_NUMBER_TYPE)) ) {
+				log_error("Comparison expression requires number! Left: %i, right: %i", left->type, right->type);
+				
+				Value_destroy(left);
+				Value_destroy(right);
+				Error_throw();
+			}
+			
+			// TODO define?
+			if(left->type != right->type) {
+				int l;
+				double r;
+				
+				if(left->type == OBJ_INTEGER_TYPE) {
+					l = left->value.integer;
+					r = right->value.number;
+				} else {
+					l = right->value.integer;
+					r = left->value.number;
+				}
+				
+				Value_destroy(left);
+				Value_destroy(right);
+				if(op == AST_LESS_OP) {
+					return Integer_create(l < r);
+				} else if (op == AST_MORE_OP) {
+					return Integer_create(l > r);
+				} else if (op == AST_LESS_EQ_OP) {
+					return Integer_create(l >= r);
+				} else {
+					return Integer_create(l <= r);
+				}
+			} if(left->type == OBJ_NUMBER_TYPE) {
+				double l = left->value.number;
+				double r = right->value.number;
+				
+				Value_destroy(left);
+				Value_destroy(right);
+				if(op == AST_LESS_OP) {
+					return Integer_create(l < r);
+				} else if (op == AST_MORE_OP) {
+					return Integer_create(l > r);
+				} else if (op == AST_LESS_EQ_OP) {
+					return Integer_create(l >= r);
+				} else {
+					return Integer_create(l <= r);
+				}
+			} else {
+				int l = left->value.integer;
+				int r = right->value.integer;
+				
+				Value_destroy(left);
+				Value_destroy(right);
+				if(op == AST_LESS_OP) {
+					return Integer_create(l < r);
+				} else if (op == AST_MORE_OP) {
+					return Integer_create(l > r);
+				} else if (op == AST_LESS_EQ_OP) {
+					return Integer_create(l >= r);
+				} else {
+					return Integer_create(l <= r);
+				}
+			}
+		} else if (op == AST_AND_OP) {
+			int res = Value_is_true(left) && Value_is_true(right);
+			
+			Value_destroy(left);
+			Value_destroy(right);
+			return Integer_create(res);
+		} else if (op == AST_OR_OP) {
+			int res = Value_is_true(left) || Value_is_true(right);
+			
+			Value_destroy(left);
+			Value_destroy(right);
+			return Integer_create(res);
 		} else {
-			if(left->type != OBJ_NUMBER_TYPE || right->type != OBJ_NUMBER_TYPE) {
+			if( !((left->type == OBJ_INTEGER_TYPE || left->type == OBJ_NUMBER_TYPE) ||
+				(right->type == OBJ_INTEGER_TYPE || right->type == OBJ_NUMBER_TYPE)) ) {
 				log_error("Binary expression requires number!");
 				
 				Value_destroy(left);
 				Value_destroy(right);
-				Error_throw(1);
+				Error_throw();
 			}
 			
-			double l = *(double*)Value_get(left);
-			double r = *(double*)Value_get(right);
 			
-			Value_destroy(left);
-			Value_destroy(right);
-			
-			if(op == AST_MINUS_OP)
-				return Number_create(l - r);
-			else if(op == AST_MULT_OP)
-				return Number_create(l * r);
-			else if(op == AST_DIV_OP) {
-				if(r == 0) {
-					log_debug("Division by zero not allowed!");
-					Error_throw(1);
+			if(left->type == OBJ_NUMBER_TYPE) {
+				double l = left->value.number;
+				double r = right->value.number;
+				
+				Value_destroy(left);
+				Value_destroy(right);
+				
+				if(op == AST_MINUS_OP)
+					return Number_create(l - r);
+				else if(op == AST_MULT_OP)
+					return Number_create(l * r);
+				else if(op == AST_MODULO_OP)
+					return Number_create(fmod(l, r));
+				else if(op == AST_DIV_OP) {
+					if(r == 0) {
+						log_error("Division by zero not allowed!");
+						Error_throw();
+					}
+					return Number_create(l / r);
+				} else {
+					log_error("Operator type %i not supported!", op);
+					Error_throw();
 				}
-				return Number_create(l / r);
 			} else {
-				log_error("Operator type %i not supported!", op);
+				int l = left->value.integer;
+				int r = right->value.integer;
+				
+				Value_destroy(left);
+				Value_destroy(right);
+				
+				if(op == AST_MINUS_OP)
+					return Integer_create(l - r);
+				else if(op == AST_MULT_OP)
+					return Integer_create(l * r);
+				else if(op == AST_MODULO_OP)
+					return Integer_create(l % r);
+				else if(op == AST_DIV_OP) {
+					if(r == 0) {
+						log_debug("Division by zero not allowed!");
+						Error_throw();
+					}
+					return Number_create(l / r);
+				} else {
+					log_error("Operator type %i not supported!", op);
+				}
 			}
 		}
+	} else {
+		log_error("Type %i not supported!", value->type);
+		Error_throw(1);
 	}
 }
 int Value_is_true(Value* value) {
 	if(value->type == OBJ_STRING_TYPE) {
 		return strlen(value->value.string) > 0;
+	} else if (value->type == OBJ_INTEGER_TYPE) {
+		return value->value.integer > 0;
 	} else if (value->type == OBJ_NUMBER_TYPE) {
-		return *(value->value.number) > 0;
+		return value->value.number > 0;
 	} else if(value->type == OBJ_OBJECT_TYPE) {
 		return 1;
 	} else if(value->type == OBJ_ARRAY_TYPE) {
-		return 1; // TODO ARRAY
+		return 1; // TODO array is true when length > 0
 	} else if(value->type == OBJ_FN_TYPE) {
+		return 0;
+	} else {
 		return 0;
 	}
 }
@@ -324,9 +480,11 @@ int Value_compare(Value* value1, Value* value2) {
 	}
 	
 	if(value1->type == OBJ_STRING_TYPE) {
-		return strcmp(value1->value.string, value2->value.string);
+		return strcmp(value1->value.string, value2->value.string) == 0;
+	} else if (value1->type == OBJ_INTEGER_TYPE) {
+		return value1->value.integer == value2->value.integer;
 	} else if (value1->type == OBJ_NUMBER_TYPE) {
-		return *(value1->value.number) == *(value2->value.number);
+		return value1->value.number == value2->value.number;
 	} else if(value1->type == OBJ_OBJECT_TYPE) {
 		return 0;
 	} else if(value1->type == OBJ_ARRAY_TYPE) {

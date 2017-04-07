@@ -21,7 +21,7 @@ Type this into terminal:
 ```
 git clone https://github.com/ignid/topl.git
 cd topl
-gcc main.c -o main -w
+gcc main.c -o main -w -lm
 ```
 
 ## Todo List
@@ -32,18 +32,20 @@ gcc main.c -o main -w
 	- [x] Expression statements
 	- [ ] Function declaration statements
 	- [x] If statements
-	- [ ] While statements
+	- [x] While statements
 - [x] Expressions
-	- [ ] Unary expressions
+	- [ ] Unary expressions (+, -, !)
 	- [x] Function call expressions
 	- [x] Equality expressions (==, !=)
 	- [x] Comparison expressions (>, <, >=, <=)
+	- [x] Logical expressions (&&, ||)
 - [ ] Data structures
 	- [x] Basic structures (numbers, strings)
 	- [ ] Objects (prototypical inheritance like in JS)
 	- [ ] Arrays
 - [ ] Standard API
 	- [ ] Input/output API
+	- [ ] Math API
 - [x] Add an actual REPL/CLI interpreter
 - [x] Add working Hello World example
 
