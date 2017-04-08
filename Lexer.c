@@ -38,7 +38,7 @@ void Lexer_push(Lexer* lexer, Token* token) {
 	}
 }
 Token* Lexer_parse(Lexer* lexer) {
-	Token* token = NULL;
+	Token* token;
 	while( (token = Lexer_parse_next(lexer)) != NULL ) {
 		Lexer_push(lexer, token);
 	}
@@ -59,7 +59,8 @@ Token* Lexer_parse_next(Lexer* lexer) {
 		current == '(' || current == ')' ||
 		current == '&' || current == '|' ||
 		current == '<' || current == '>' || current == '!' || current == '=' ||
-		current == ',' || current == ';'
+		current == ',' || current == ';' ||
+		current == '.'
 	) {
 		return Lexer_parse_operator(lexer);
 	} else if (current == '"' || current == '\'') {
@@ -83,17 +84,20 @@ Token* Lexer_parse_string(Lexer* lexer) {
 			lexer->position++;
 			break;
 		} else if (lexer->source[lexer->position] == '\\') {
+			log_debug("escape character");
 			lexer->position++;
 			string = (char*) realloc(string, i + 2);
 			if(lexer->position >= lexer->length) {
 				log_error("Unexpected end of string.");
 				Error_throw();
 			} else if (lexer->source[lexer->position] == 'n') {
+				log_debug("newline character");
 				string[i] = '\n';
 			} else {
 				string[i] = lexer->source[lexer->position];
 			}
 			lexer->position++;
+			i++;
 		} else {
 			string = (char*) realloc(string, i + 2);
 			string[i] = lexer->source[lexer->position++];
@@ -116,13 +120,14 @@ Token* Lexer_parse_number(Lexer* lexer) {
 		} else {
 			break;
 		}
-		string[i] = '\0';
-		log_debug("INTEGER %s", string);
 	}
 	if(lexer->position < lexer->length && lexer->source[lexer->position] == '.') {
-		lexer->position++;
-		char current = lexer->source[lexer->position];
+		string = (char*)realloc(string, i + 2);
+		string[i] = lexer->source[lexer->position++];
+		i++;
+		
 		while(lexer->position < lexer->length) {
+			char current = lexer->source[lexer->position];
 			if(isdigit(current)) {
 				string = (char*)realloc(string, i + 2);
 				string[i++] = current;
@@ -132,9 +137,12 @@ Token* Lexer_parse_number(Lexer* lexer) {
 			}
 		}
 		string[i] = '\0';
+		
 		log_debug("NUMBER %s", string);
 		return Token_create(TOK_NUMBER_TYPE, string);
 	} else {
+		string[i] = '\0';
+		log_debug("INTEGER %s", string);
 		return Token_create(TOK_INTEGER_TYPE, string);
 	}
 }
@@ -202,6 +210,7 @@ Token* Token_create(int type, char* value) {
 	Token* token = (Token*)malloc(sizeof(Token));
 	token->type = type;
 	token->value = value;
+	token->next = NULL;
 	return token;
 }
 void Token_destroy(Token* token) {

@@ -120,6 +120,7 @@ Value* Number_create(double number);
 Value* Value_object_create(Object* object);
 Value* Value_fn_create(Function* function);
 Value* Value_create();
+Value* Value_clone(Value* value);
 void Value_destroy(Value* value);
 
 ArrayElement* ArrayElement_create(Value* value);

@@ -3,6 +3,7 @@
 #include "log.c/src/log.h"
 #include "AST.h"
 #include "Parser.h"
+#include "Conversion.h"
 
 Parser* Parser_create(Token* token) {
 	Parser* parser = (Parser*)malloc(sizeof(Parser));
@@ -24,24 +25,103 @@ ASTProgram* Parser_parse(Parser* parser) {
 ASTValue* Parser_parse_literal(Parser* parser) {
 	ASTValue* value;
 	Token* current = parser->current;
+	//log_debug("value: %s", current->value);
 	if(current == NULL) {
 		return NULL;
 	} else if(current->type == TOK_STRING_TYPE) {
 		log_debug("STRING TOKEN %s", current->value);
 		value = ASTString_create(current->value);
 	} else if (current->type == TOK_INTEGER_TYPE) {
+		log_debug("INTEGER %s", current->value);
 		value = ASTInteger_create(atoi(current->value));
-		log_debug("INTEGER %i", value->value.integer);
-	} else if (current->type == TOK_INTEGER_TYPE) {
+	} else if (current->type == TOK_NUMBER_TYPE) {
+		log_debug("NUMBER %s", current->value);
 		value = ASTNumber_create(strtod(current->value, NULL));
-		log_debug("NUMBER %f", value->value.number);
 	} else if (current->type == TOK_IDENTIFIER_TYPE) {
-		value = ASTIdentifier_create(current->value);
 		log_debug("IDENTIFIER %s", current->value);
+		value = ASTIdentifier_create(current->value);
+	} else if (strcmp(current->value, "{") == 0) {
+		log_debug("OBJECT");
+		value = Parser_parse_object(parser);
+		return value;
+	} else if (strcmp(current->value, "(") == 0) {
+		Parser_advance(parser);
+		value = Parser_parse_binary_expression(parser);
+		
+		if (strcmp(current->value, ")") != 0) {
+			log_error("expected ) at the end of expression");
+			Error_throw();
+		}
+		Parser_advance(parser);
+		return value;
 	} else {
 		return NULL;
 	}
 	Parser_advance(parser);
+	return value;
+}
+
+ASTObjectPair* Parser_parse_objectPair(Parser* parser) {
+	Token* key = parser->current;
+	if(key->type != TOK_STRING_TYPE) {
+		log_error("Expected string type for object key, got %i (%s)", key->type, key->value);
+		Error_throw();
+	}
+	Parser_advance(parser);
+	
+	if(parser->current == NULL || strcmp(parser->current->value, ":") != 0) {
+		log_error("Expected object pair separator ':'");
+		Error_throw();
+	}
+	Parser_advance(parser);
+	
+	ASTValue* value = Parser_parse_binary_expression(parser);
+	
+	if(strcmp(parser->current->value, ",") == 0) {
+		Parser_advance(parser);
+	}
+	
+	log_debug("OBJECT PAIR %s", key->value);
+	
+	return ASTObjectPair_create(key->value, value);
+}
+ASTValue* Parser_parse_object(Parser* parser) {
+	ASTObject* object = ASTObject_create();
+	
+	Parser_advance(parser); // {
+	
+	Token* current;
+	while( (current = parser->current) != NULL && strcmp(current->value, "}") != 0 ) {
+		ASTObject_set(object, Parser_parse_objectPair(parser));
+	}
+	
+	if(parser->current == NULL || strcmp(parser->current->value, "}") != 0) {
+		log_error("Expected }");
+		Error_throw();
+	}
+	Parser_advance(parser);
+	
+	return ASTValue_object_create(object);
+}
+ASTValue* Parser_parse_object_expression(Parser* parser) {
+	// TODO: expand this to access indexed array
+	// TODO: square brackets notation
+	ASTValue* value = Parser_parse_literal(parser);
+	Token* current;
+	while ( (current = parser->current) != NULL && strcmp(current->value, ".") == 0) {
+		Parser_advance(parser);
+		
+		Token* tail = parser->current;
+		log_debug("%s", tail->value);
+		if(tail == NULL || tail->type != TOK_IDENTIFIER_TYPE) {
+			log_error("Expected identifier literal after .");
+			Error_throw();
+		}
+		Parser_advance(parser);
+		
+		value = ASTValue_object_expr_create(ASTObjectExpression_create(value, ASTIdentifier_create(tail->value)));
+		log_debug("value %s", value->value.object_expr->tail->value.string);
+	}
 	return value;
 }
 
@@ -56,8 +136,10 @@ ASTArgumentList* Parser_parse_call_argument_list(Parser* parser) {
 	ASTArgumentList_set(argument_list, ASTArgument_create(NULL, first));
 	
 	Token* current;
-	while( (current = parser->current) != NULL) {
-		if (strcmp(current->value, ",") == 0) {
+	while( (current = parser->current) != NULL ) {
+		log_debug("%s", current->value);
+		if(strcmp(current->value, ",") == 0) {
+			log_debug("new");
 			Parser_advance(parser);
 			ASTValue* value = Parser_parse_binary_expression(parser);
 			if(value == NULL) {
@@ -77,9 +159,9 @@ ASTArgumentList* Parser_parse_call_argument_list(Parser* parser) {
 }
 ASTValue* Parser_parse_call_expression(Parser* parser) {
 	log_debug("Call expression");
-	ASTValue* value = Parser_parse_literal(parser);
+	ASTValue* value = Parser_parse_object_expression(parser);
 	Token* current = parser->current;
-	if(strcmp(current->value, "(") == 0) {
+	if(current != NULL && strcmp(current->value, "(") == 0) {
 		Parser_advance(parser);
 		ASTArgumentList* argument_list = Parser_parse_call_argument_list(parser);
 		
@@ -219,58 +301,8 @@ ASTValue* Parser_parse_term_expression(Parser* parser) {
 	return bin_expr;
 }
 
-ASTObjectPair* Parser_parse_objectPair(Parser* parser) {
-	Token* key = parser->current;
-	if(strcmp(key->value, "}") == 0) {
-		Parser_advance(parser);
-		return NULL;
-	} else if(key->type != TOK_STRING_TYPE) {
-		log_debug("EXPECTED OBJECT KEY: STRING TYPE %s", key->value);
-		return NULL;
-	}
-	Parser_advance(parser);
-	
-	Token* current = parser->current;
-	if(strcmp(current->value, ":") != 0) {
-		log_debug("EXPECTED OBJECT ':'");
-		return NULL;
-	}
-	Parser_advance(parser);
-	
-	ASTValue* value = Parser_parse_literal(parser);
-	
-	current = parser->current;
-	if(strcmp(current->value, ",") == 0) {
-		Parser_advance(parser);
-	}
-	
-	log_debug("COMPLETE! %s %f", key->value, value->value.number);
-	
-	return ASTObjectPair_create(key->value, value);
-}
-
-ASTObject* Parser_parse_object(Parser* parser) {
-	ASTObject* object = ASTObject_create();
-	ASTObjectPair* objectPair;
-	
-	Token* current = parser->current;
-	if(strcmp(current->value, "{") == 0) {
-		Parser_advance(parser);
-	} else {
-		log_error("Expected object start {");
-		Error_throw();
-	}
-	
-	current = parser->current;
-	while( (objectPair = Parser_parse_objectPair(parser)) != NULL ) {
-		ASTObject_set(object, objectPair);
-	}
-	return object;
-}
-
 ASTStatement* Parser_parse_statement(Parser* parser) {
 	Token* current = parser->current;
-	if(current == NULL) return NULL; // EOF
 	if( current->type == TOK_IDENTIFIER_TYPE &&
 		current->next != NULL && strcmp(current->next->value, "=") == 0 ) {
 		log_debug("declaration");
@@ -287,12 +319,15 @@ ASTStatement* Parser_parse_statement(Parser* parser) {
 	}
 }
 ASTStatement* Parser_parse_declaration_stmt(Parser* parser) {
+	log_debug("DECL IDENTIFIER = %s", parser->current->value);
 	char* identifier = parser->current->value;
 	Parser_advance(parser);
-	log_debug("DECL IDENTIFIER = %s", identifier);
+	
 	Parser_advance(parser); // =
+	
 	ASTValue* expression = Parser_parse_binary_expression(parser);
 	Parser_parse_EOS(parser);
+	
 	return ASTDeclarationStatement_create(ASTIdentifier_create(identifier), expression);
 }
 ASTStatement* Parser_parse_expression_stmt(Parser* parser) {
@@ -379,8 +414,10 @@ ASTProgram* Parser_parse_program(Parser* parser) {
 	ASTBlock* block = ASTBlock_create();
 	ASTProgram* program = ASTProgram_create(block);
 	ASTStatement* statement;
-	while ( (statement = Parser_parse_statement(parser)) != NULL ) {
-		ASTBlock_push(block, ASTBlockStatement_create(statement));
+	while ( parser->current != NULL ) {
+		log_debug("stmt %i", parser->current == NULL);
+		if((statement = Parser_parse_statement(parser)) != NULL)
+			ASTBlock_push(block, ASTBlockStatement_create(statement));
 	}
 	return program;
 }
@@ -388,12 +425,20 @@ ASTProgram* Parser_parse_program(Parser* parser) {
 void Parser_parse_EOS(Parser* parser) { // end of statement: could be end of file or ";"
 	Token* current = parser->current;
 	log_debug("EOS");
-	if(current == NULL) return;
+	if(parser->current == NULL) {
+		log_debug("EOF");
+		return;
+	}
+	log_debug("%s", current->value);
 	//if(current == NULL || strcmp(current->value, "}") == 0) return;
 	if(strcmp(current->value, ";") == 0) {
-		Parser_advance(parser);
-	} else if (strcmp(current->value, "}") == 0) {
-		Parser_advance(parser);
+		log_debug("semicolon");
+		if(parser->current->next == NULL) { // eof fix
+			log_debug("EOF");
+			parser->current = NULL;
+		} else {
+			Parser_advance(parser);
+		}
 	} else {
 		log_error("Unexpected character %s", current->value);
 		Error_throw();

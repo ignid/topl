@@ -1,0 +1,7 @@
+a = {
+	'hello': 'world',
+	'good': 'day'
+};
+print("hello: ", a.hello, "\n");
+print("good: ", a.good, "\n");
+print("unspecified attributes don't work: ", a.no);

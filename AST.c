@@ -45,6 +45,12 @@ ASTValue* ASTInteger_create(int integer) {
 	value->type = AST_INTEGER_VALUE;
 	return value;
 }
+ASTValue* ASTValue_object_expr_create(ASTObjectExpression* object_expr) {
+	ASTValue* value = ASTValue_create();
+	value->value.object_expr = object_expr;
+	value->type = AST_OBJECT_EXPR_VALUE;
+	return value;
+}
 ASTValue* ASTValue_create() {
 	ASTValue* value = (ASTValue*)malloc(sizeof(ASTValue));
 	value->type = AST_UNDEFINED_VALUE;
@@ -53,8 +59,8 @@ ASTValue* ASTValue_create() {
 void ASTValue_destroy(ASTValue* value) {
 	if(value->type == AST_STRING_VALUE || value->type == AST_IDENTIFIER_VALUE) {
 		free(value->value.string);
-	} else if(value->type == AST_NUMBER_VALUE) {
-		
+	} else if(value->type == AST_INTEGER_VALUE || value->type == AST_NUMBER_VALUE) {
+		// numbers aren't malloc'd
 	} else if(value->type == AST_OBJECT_VALUE) {
 		ASTObject_destroy(value->value.object);
 	} else if(value->type == AST_ARRAY_VALUE) {
@@ -69,6 +75,7 @@ ASTObjectPair* ASTObjectPair_create(char* key, ASTValue* value) {
 	ASTObjectPair* objectPair = (ASTObjectPair*)malloc(sizeof(ASTObjectPair));
 	objectPair->key = key;
 	objectPair->value = value;
+	objectPair->next = NULL;
 	return objectPair;
 }
 void ASTObjectPair_destroy(ASTObjectPair* objectPair) {
@@ -83,14 +90,12 @@ ASTObject* ASTObject_create() {
 	return object;
 }
 void ASTObject_destroy(ASTObject* object) {
-	if(object->first != NULL) {
-		ASTObjectPair* current = object->first;
-		ASTObjectPair* next;
-		while(current != NULL) {
-			next = current->next;
-			ASTObjectPair_destroy(current);
-			current = next;
-		}
+	ASTObjectPair* current = object->first;
+	ASTObjectPair* next;
+	while(current != NULL) {
+		next = current->next;
+		ASTObjectPair_destroy(current);
+		current = next;
 	}
 	free(object);
 }
@@ -102,9 +107,9 @@ void ASTObject_set(ASTObject* object, ASTObjectPair* objectPair) {
 		if(found == NULL) {
 			object->last->next = objectPair;
 			object->last = objectPair;
-		} else {
-			log_error("ERROR! AST OBJECT REDEFINITION!");
-			Error_throw();
+		} else {// TODO Value_mutate
+			Value_destroy(objectPair->value);
+			found->value = objectPair->value;
 		}
 	}
 }
@@ -118,6 +123,17 @@ ASTObjectPair* ASTObject_get(ASTObject* object, char* key) {
 		}
 	}
 	return NULL;
+}
+ASTObjectExpression* ASTObjectExpression_create(ASTValue* head, ASTValue* tail) {
+	ASTObjectExpression* object_expr = (ASTObjectExpression*)malloc(sizeof(ASTObjectExpression));
+	object_expr->head = head;
+	object_expr->tail = tail;
+	return object_expr;
+}
+void ASTObjectExpression_destroy(ASTObjectExpression* object_expr) {
+	Value_destroy(object_expr->head);
+	Value_destroy(object_expr->tail);
+	free(object_expr);
 }
 
 ASTArrayElement* ASTArrayElement_create(ASTValue* value) {
@@ -287,14 +303,17 @@ ASTArgument* ASTArgumentList_get(ASTArgumentList* argument_list, ASTValue* key) 
 void ASTArgumentList_set(ASTArgumentList* argument_list, ASTArgument* argument) {
 	if(argument_list->first == NULL) {
 		argument_list->first = argument_list->last = argument;
+	} else if (argument->key == NULL) {
+		argument_list->last->next = argument;
+		argument_list->last = argument;
 	} else {
 		ASTArgument* found = ASTArgumentList_get(argument_list, argument->key);
 		if(found == NULL) {
 			argument_list->last->next = argument;
 			argument_list->last = argument;
 		} else {
-			ASTValue_destroy(found->value);
-			found->value = argument->value;
+			log_error("Argument list redefinition!");
+			Error_throw();
 		}
 	}
 }

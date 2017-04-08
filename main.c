@@ -1,7 +1,8 @@
 #include <stdio.h>
 #include <string.h>
-#define LOG_USE_COLOR 1
+#define LOG_USE_COLOR
 #include "log.c/src/log.c"
+#include "Conversion.c"
 #include "Error.c"
 #include "AST.c"
 #include "Object.c"
@@ -49,6 +50,7 @@ int main(int argc, char* argv[]) {
 	Lexer* lexer = NULL;
 	Parser* parser = NULL;
 	Interpreter* interpreter = NULL;
+	
 	if(setjmp(env) == 0) {
 		lexer = Lexer_create(string);
 		Lexer_parse(lexer);
@@ -64,6 +66,7 @@ int main(int argc, char* argv[]) {
 		Lexer_destroy(lexer);
 		Parser_destroy(parser);
 		Interpreter_destroy(interpreter);
+		// no need to free(string) because Lexer_destroy do it for us
 	} else {
 		if(lexer != NULL) Lexer_destroy(lexer);
 		if(parser != NULL) Parser_destroy(parser);

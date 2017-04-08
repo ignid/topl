@@ -28,6 +28,8 @@ ObjectPair* Object_get_pair(Object* object, char* key) {
 Value* Object_get(Object* object, char* key) {
 	ObjectPair* pair = Object_get_pair(object, key);
 	if(pair == NULL) {
+		log_error("Object has no attribute '%s'", key);
+		Error_throw();
 		return NULL;
 	} else {
 		return pair->value;
@@ -41,7 +43,7 @@ void Object_set(Object* object, ObjectPair* objectPair) {
 		if(found == NULL) {
 			object->last->next = objectPair;
 			object->last = objectPair;
-		} else {
+		} else { // TODO value_mutate
 			Value_destroy(found->value);
 			found->value = objectPair->value;
 		}
@@ -73,7 +75,7 @@ void ObjectPair_destroy(ObjectPair* objectPair) {
 // Value
 Value* String_create(char* string) {
 	Value* value = Value_create();
-	value->value.string = strdup(string);
+	value->value.string = string;
 	value->type = OBJ_STRING_TYPE;
 	return value;
 }
@@ -115,6 +117,29 @@ void Value_destroy(Value* value) {
 		Function_destroy(value->value.function);
 	}
 	free(value);
+}
+Value* Value_clone(Value* value) {
+	if(value->type == OBJ_STRING_TYPE) {
+		return String_create(value->value.string);
+	} else if (value->type == OBJ_INTEGER_TYPE) {
+		return Integer_create(value->value.integer);
+	} else if (value->type == OBJ_NUMBER_TYPE) {
+		return Number_create(value->value.number);
+	} else if(value->type == OBJ_OBJECT_TYPE) {
+		Object* object = Object_create();
+		object->first = value->value.object->first;
+		object->last = value->value.object->last;
+		return Value_object_create(object);
+	} else if(value->type == OBJ_ARRAY_TYPE) {
+		return NULL;
+		//return Array_create(val->value.array);
+	} else if(value->type == OBJ_FN_TYPE) {
+		// TODO
+	} else {
+		log_error("type %i not supported", value->type);
+		Error_throw();
+	}
+	return NULL;
 }
 
 // array elements

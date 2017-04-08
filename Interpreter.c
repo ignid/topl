@@ -185,27 +185,21 @@ Value* Value_evaluate(ASTValue* value, Block* block) {
 		log_debug("NUMBER VALUE %f", value->value.number);
 		return Number_create(value->value.number);
 	} else if (value->type == AST_OBJECT_VALUE) {
-		// TODO
+		log_debug("OBJECT VALUE");
+		Object* object = Object_create();
+		ASTObjectPair* current = value->value.object->first;
+		while(current != NULL) {
+			Object_set(object, ObjectPair_create(current->key, Value_evaluate(current->value, block)));
+			current = current->next;
+		}
+		return Value_object_create(object);
 	} else if (value->type == AST_ARRAY_VALUE) {
 		// TODO
+		return NULL;
 	} else if (value->type == AST_IDENTIFIER_VALUE) {
-		// clone value to not double free
 		log_debug("IDENTIFIER VALUE %s", value->value.string);
 		Value* val = Scope_get(block->scope, value->value.string)->value;
-		if(val->type == OBJ_STRING_TYPE) {
-			return String_create(val->value.string);
-		} else if (val->type == OBJ_INTEGER_TYPE) {
-			return Integer_create(val->value.integer);
-		} else if (val->type == OBJ_NUMBER_TYPE) {
-			return Number_create(val->value.number);
-		} else if(val->type == OBJ_OBJECT_TYPE) {
-			return Object_create(val->value.object);
-		} else if(val->type == OBJ_ARRAY_TYPE) {
-			return Array_create(val->value.array);
-		} else if(val->type == OBJ_FN_TYPE) {
-			// TODO
-		}
-		return NULL;
+		return Value_clone(val);
 	} else if (value->type == AST_FN_VALUE) {
 		log_debug("FUNCTION VALUE");
 		ASTFunctionExpression* fn_expr = value->value.fn_expr;
@@ -449,12 +443,30 @@ Value* Value_evaluate(ASTValue* value, Block* block) {
 					return Number_create(l / r);
 				} else {
 					log_error("Operator type %i not supported!", op);
+					Error_throw();
 				}
 			}
 		}
+	} else if(value->type == AST_OBJECT_EXPR_VALUE) {
+		ASTObjectExpression* object_expr = value->value.object_expr;
+		Value* head = Value_evaluate(object_expr->head, block);
+		if(head == NULL || head->type != OBJ_OBJECT_TYPE) {
+			log_error("object accessor expression: head type must be object type, got %i", head->type);
+			Error_throw();
+		}
+		
+		ASTValue* tail = object_expr->tail;
+		log_debug("%i", tail->type);
+		if(tail == NULL || tail->type != AST_IDENTIFIER_VALUE) {
+			log_error("this shouldn't happen");
+			Error_throw();
+		}
+		
+		Value* val = Object_get(head->value.object, tail->value.string);
+		return Value_clone(val);
 	} else {
 		log_error("Type %i not supported!", value->type);
-		Error_throw(1);
+		Error_throw();
 	}
 }
 int Value_is_true(Value* value) {

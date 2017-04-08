@@ -33,9 +33,10 @@ ASTValue* Parser_parse_equality_expression(Parser* parser);
 ASTValue* Parser_parse_comparison_expression(Parser* parser);
 ASTValue* Parser_parse_additive_expression(Parser* parser);
 ASTValue* Parser_parse_term_expression(Parser* parser);
+ASTValue* Parser_parse_object_expression(Parser* parser);
 
 ASTObjectPair* Parser_parse_objectPair(Parser* parser);
-ASTObject* Parser_parse_object(Parser* parser);
+ASTValue* Parser_parse_object(Parser* parser);
 
 ASTStatement* Parser_parse_statement(Parser* parser);
 ASTStatement* Parser_parse_declaration_stmt(Parser* parser);

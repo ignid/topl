@@ -10,6 +10,7 @@
 #define AST_IDENTIFIER_VALUE 5
 #define AST_FN_VALUE 6
 #define AST_INTEGER_VALUE 7
+#define AST_OBJECT_EXPR_VALUE 8
 
 #define AST_PLUS_OP 0
 #define AST_MINUS_OP 1
@@ -39,6 +40,7 @@ struct ASTBinaryExpression;
 struct ASTArgument;
 struct ASTArgumentList;
 struct ASTFunctionExpression;
+struct ASTObjectExpression;
 
 struct ASTDeclarationStatement;
 struct ASTExpressionStatement;
@@ -61,6 +63,7 @@ typedef struct ASTValue {
 		struct ASTArray* array;
 		struct ASTBinaryExpression* bin_expr;
 		struct ASTFunctionExpression* fn_expr;
+		struct ASTObjectExpression* object_expr;
 	} value;
 	int type;
 	
@@ -131,6 +134,16 @@ typedef struct ASTBinaryExpression {
 	ASTValue* right;
 	
 } ASTBinaryExpression;
+
+// ----------------------------------------
+// Object accessors
+// a.b or a[b]
+typedef struct ASTObjectExpression {
+	
+	ASTValue* head;
+	ASTValue* tail;
+	
+} ASTObjectExpression;
 
 // ----------------------------------------
 struct ASTBlockStatement;
@@ -210,6 +223,7 @@ ASTValue* ASTString_create(char* string);
 ASTValue* ASTNumber_create(double number);
 ASTValue* ASTValue_object_create(ASTObject* object);
 ASTValue* ASTValue_bin_expr_create(ASTBinaryExpression* bin_expr);
+ASTValue* ASTValue_object_expr_create(ASTObjectExpression* object_expr);
 ASTValue* ASTValue_create();
 void ASTValue_destroy(ASTValue* value);
 
@@ -219,6 +233,8 @@ ASTObject* ASTObject_create();
 void ASTObject_set(ASTObject* object, ASTObjectPair* objectPair);
 void ASTObject_destroy(ASTObject* object);
 ASTObjectPair* ASTObject_get(ASTObject* object, char* key);
+ASTObjectExpression* ASTObjectExpression_create(ASTValue* head, ASTValue* tail);
+void ASTObjectExpression_destroy(ASTObjectExpression* object_expr);
 
 ASTArrayElement* ASTArrayElement_create();
 ASTArray* ASTArray_create();
