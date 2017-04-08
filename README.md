@@ -36,6 +36,7 @@ gcc main.c -o main -w -lm
 	- [x] While statements
 - [x] Expressions
 	- [ ] Unary expressions (+, -, !)
+	- [x] Arithmetic expressions (+, -, /, *, %)
 	- [x] Function call expressions
 	- [x] Equality expressions (==, !=)
 	- [x] Comparison expressions (>, <, >=, <=)
