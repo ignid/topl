@@ -158,10 +158,10 @@ ASTArgumentList* Parser_parse_call_argument_list(Parser* parser) {
 	return argument_list;
 }
 ASTValue* Parser_parse_call_expression(Parser* parser) {
-	log_debug("Call expression");
 	ASTValue* value = Parser_parse_object_expression(parser);
 	Token* current = parser->current;
 	if(current != NULL && strcmp(current->value, "(") == 0) {
+		log_debug("Call expression");
 		Parser_advance(parser);
 		ASTArgumentList* argument_list = Parser_parse_call_argument_list(parser);
 		
@@ -303,37 +303,35 @@ ASTValue* Parser_parse_term_expression(Parser* parser) {
 
 ASTStatement* Parser_parse_statement(Parser* parser) {
 	Token* current = parser->current;
-	if( current->type == TOK_IDENTIFIER_TYPE &&
-		current->next != NULL && strcmp(current->next->value, "=") == 0 ) {
-		log_debug("declaration");
-		return Parser_parse_declaration_stmt(parser);
-	} else if (strcmp(current->value, "if") == 0) {
+	if (strcmp(current->value, "if") == 0) {
 		log_debug("if");
 		return Parser_parse_if_stmt(parser);
 	} else if (strcmp(current->value, "while") == 0) {
 		log_debug("while");
 		return Parser_parse_while_stmt(parser);
 	} else {
-		log_debug("expression");
-		return Parser_parse_expression_stmt(parser);
+		return Parser_parse_declaration_expression_stmt(parser);
+		//log_debug("expression");
+		//return Parser_parse_expression_stmt(parser);
 	}
 }
-ASTStatement* Parser_parse_declaration_stmt(Parser* parser) {
-	log_debug("DECL IDENTIFIER = %s", parser->current->value);
-	char* identifier = parser->current->value;
-	Parser_advance(parser);
-	
-	Parser_advance(parser); // =
-	
-	ASTValue* expression = Parser_parse_binary_expression(parser);
-	Parser_parse_EOS(parser);
-	
-	return ASTDeclarationStatement_create(ASTIdentifier_create(identifier), expression);
-}
-ASTStatement* Parser_parse_expression_stmt(Parser* parser) {
-	ASTValue* expression = Parser_parse_binary_expression(parser);
-	Parser_parse_EOS(parser);
-	return ASTExpressionStatement_create(expression);
+ASTStatement* Parser_parse_declaration_expression_stmt(Parser* parser) {
+	log_debug("declaration stmt");
+	ASTValue* left = Parser_parse_binary_expression(parser);
+	log_info("%s", parser->current->value);
+	if(parser->current != NULL && strcmp(parser->current->value, "=") == 0) {
+		Parser_advance(parser);
+		if(parser->current == NULL) {
+			log_error("expected right hand side expression");
+			Error_throw();
+		}
+		ASTValue* right = Parser_parse_binary_expression(parser);
+		Parser_parse_EOS(parser);
+		return ASTDeclarationStatement_create(left, right);
+	} else {
+		Parser_parse_EOS(parser);
+		return ASTExpressionStatement_create(left);
+	}
 }
 ASTStatement* Parser_parse_if_stmt(Parser* parser) {
 	Parser_advance(parser); // if
@@ -429,8 +427,8 @@ void Parser_parse_EOS(Parser* parser) { // end of statement: could be end of fil
 		log_debug("EOF");
 		return;
 	}
+	
 	log_debug("%s", current->value);
-	//if(current == NULL || strcmp(current->value, "}") == 0) return;
 	if(strcmp(current->value, ";") == 0) {
 		log_debug("semicolon");
 		if(parser->current->next == NULL) { // eof fix

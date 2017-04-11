@@ -39,8 +39,7 @@ ASTObjectPair* Parser_parse_objectPair(Parser* parser);
 ASTValue* Parser_parse_object(Parser* parser);
 
 ASTStatement* Parser_parse_statement(Parser* parser);
-ASTStatement* Parser_parse_declaration_stmt(Parser* parser);
-ASTStatement* Parser_parse_expression_stmt(Parser* parser);
+ASTStatement* Parser_parse_declaration_expression_stmt(Parser* parser);
 ASTStatement* Parser_parse_if_stmt(Parser* parser);
 ASTStatement* Parser_parse_while_stmt(Parser* parser);
 

@@ -77,6 +77,7 @@ Value* Statement_evaluate(ASTStatement* statement, Block* block);
 Value* Value_evaluate(ASTValue* value, Block* block);
 int Value_is_true(Value* value);
 int Value_compare(Value* value1, Value* value2);
+void Object_expr_set(ASTValue* value1, ASTValue* value2, Block* block);
 
 Program* Program_create(ASTProgram* program, Scope* scope);
 void Program_destroy(Program* program);

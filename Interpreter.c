@@ -134,12 +134,33 @@ Value* Statement_evaluate(ASTStatement* statement, Block* block) {
 		log_debug("Declaration Stmt");
 		ASTDeclarationStatement* stmt = statement->statement.declaration;
 		
-		char* identifier = stmt->left->value.string;
-		log_debug("DECL IDENTIFIER %s", identifier);
-		
-		Value* right = Value_evaluate(stmt->right, block);
-		Scope_set(block->scope, identifier, right);
-		
+		if(stmt->left->type == AST_IDENTIFIER_VALUE) {
+			char* identifier = stmt->left->value.string;
+			log_debug("DECL IDENTIFIER %s", identifier);
+			
+			Value* right = Value_evaluate(stmt->right, block);
+			Scope_set(block->scope, identifier, right);
+		} else if (stmt->left->type == AST_OBJECT_EXPR_VALUE) {
+			log_debug("DECL OBJ EXPR");
+			
+			ASTObjectExpression* object_expr = stmt->left->value.object_expr;
+			Value* head = Value_evaluate(object_expr->head, block);
+			if(head == NULL || head->type != OBJ_OBJECT_TYPE) {
+				log_error("object accessor expression: head type must be object type, got %i", head->type);
+				Error_throw();
+			}
+			
+			ASTValue* tail = object_expr->tail;
+			if(tail == NULL || tail->type != AST_IDENTIFIER_VALUE) {
+				log_error("object accessor expression: tail has be of type identifier value");
+				Error_throw();
+			}
+			log_debug("%s", tail->value.string);
+			
+			Object_set(head->value.object, ObjectPair_create(tail->value.string, Value_evaluate(stmt->right, block)));
+		} else {
+			log_error("declaration statement: left must be of type identifier or object expression");
+		}
 		return NULL;
 	} else if(statement->type == AST_EXPR_STATEMENT) {
 		log_debug("Expression Stmt");
@@ -458,7 +479,7 @@ Value* Value_evaluate(ASTValue* value, Block* block) {
 		ASTValue* tail = object_expr->tail;
 		log_debug("%i", tail->type);
 		if(tail == NULL || tail->type != AST_IDENTIFIER_VALUE) {
-			log_error("this shouldn't happen");
+			log_error("object accessor expression: tail has be of type identifier value");
 			Error_throw();
 		}
 		

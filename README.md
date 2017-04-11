@@ -29,7 +29,7 @@ gcc main.c -o main -w -lm
 - [x] Error handling
 - [ ] Statements
 	- [x] Declaration statements
-		- [ ] Declaration statements for object accessors (a.b = c)
+		- [x] Declaration statements for object accessors (a.b = c)
 	- [x] Expression statements
 	- [ ] Function declaration statements
 	- [x] If statements
