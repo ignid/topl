@@ -2,7 +2,9 @@ a = {
 	'hello': 'world',
 	'good': 'day'
 };
+
 print("hello: ", a.hello, "\n");
 print("good: ", a.good, "\n");
+
 a.yes = 'woah';
 print("yes: ", a.yes, "\n");

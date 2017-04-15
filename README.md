@@ -19,9 +19,9 @@ You will need:
 Type this into terminal:
 
 ```
-git clone https://github.com/ignid/topl.git
+git clone --recursive https://github.com/ignid/topl.git
 cd topl
-gcc main.c -o main -w -lm
+./build.sh
 ```
 
 ## Todo List
@@ -91,14 +91,12 @@ Block =
 	"{" Statement* "}"
 
 Statement
-	= (DefinitionStatement
-	| IfStatement
+	= IfStatement
+	| WhileStatement
 	| FunctionStatement
-	| ExpressionStatement)
+	| DefinitionStatement
+	| ExpressionStatement
 	
-
-DefinitionStatement
-	= Identifier "=" BinaryExpression ";"
 
 IfStatement
 	= "if" "(" BinaryExpression ")" Block
@@ -110,6 +108,9 @@ FunctionArguments
 	= "(" Identifier ("," Identifier)+ ")"
 FunctionStatement
 	= "fn" Identifier FunctionArguments Block
+
+DefinitionStatement
+	= Expression "=" BinaryExpression ";"
 
 ExpressionStatement
 	= BinaryExpression ";"

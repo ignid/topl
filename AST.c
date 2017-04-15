@@ -67,6 +67,8 @@ void ASTValue_destroy(ASTValue* value) {
 		ASTArray_destroy(value->value.array);
 	} else if (value->type == AST_BINEXPR_VALUE) {
 		ASTBinaryExpression_destroy(value->value.bin_expr);
+	} else if (value->type == AST_OBJECT_EXPR_VALUE) {
+		ASTObjectExpression_destroy(value->value.object_expr);
 	}
 	free(value);
 }
