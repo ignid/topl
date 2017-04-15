@@ -13,7 +13,6 @@ Feel free to criticize or fork this.
 You will need:
 
 * gcc
-
 * a linux system
 
 Type this into terminal:
@@ -45,7 +44,7 @@ cd topl
 - [ ] Comments (/**/ and //)
 - [ ] Data structures
 	- [x] Basic structures (numbers, strings)
-	- [x] Objects (prototypical inheritance like in JS)
+	- [x] Objects
 	- [ ] Arrays
 - [ ] Standard API
 	- [x] Input/output API
