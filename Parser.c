@@ -1,6 +1,5 @@
 #include <stdlib.h>
 #include "Error.h"
-#include "log.c/src/log.h"
 #include "AST.h"
 #include "Parser.h"
 #include "Conversion.h"

@@ -1,6 +1,5 @@
 #include <stdlib.h>
 #include <string.h>
-#include "log.c/src/log.h"
 #include "AST.h"
 
 ASTValue* ASTIdentifier_create(char* string) {

@@ -1,5 +1,4 @@
 #include <math.h>
-#include "log.c/src/log.h"
 #include "Error.h"
 #include "AST.h"
 #include "Interpreter.h"

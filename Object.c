@@ -2,7 +2,6 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "log.c/src/log.h"
 #include "Error.h"
 #include "Object.h"
 #include "Interpreter.h"

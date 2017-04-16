@@ -1,6 +1,5 @@
 #include <string.h>
 #include <ctype.h>
-#include "log.c/src/log.h"
 #include "Error.h"
 #include "Lexer.h"
 

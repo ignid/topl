@@ -1,6 +1,5 @@
 #include <stdlib.h>
 #include <stdarg.h>
-#include "../log.c/src/log.h"
 #include "../Object.h"
 #include "../Interpreter.h"
 #include "../Conversion.h"

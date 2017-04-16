@@ -1,6 +1,5 @@
 #include <math.h>
 #include "Conversion.h"
-#include "log.c/src/log.h"
 
 char* integer_to_string(int n) {
 	int len = n == 0 ? 1 : floor(log10(abs(n)))+1;

@@ -7,17 +7,19 @@
 #else
 #include <stdarg.h>
 #define log_set_level(X)
+#define log_trace(...)
+#define log_debug(...)
+#define log_info(...)
+#define log_warn(...)
+#define log_error(...) log_log(0, __FILE__, __VA_ARGS__)
+#define log_fatal(...) log_log(1, __FILE__, __VA_ARGS__)
 #define ERROR_COLOR "\x1b[31m"
 #define FATAL_COLOR "\x1b[35m"
-void log_log(int level, const char *file, int line, const char *fmt, ...) {
-	if(level < 4) { // LOG_ERROR
-		return;
-	}
-	
-	if(level == 4) {
-		fprintf(stdout, "%sERROR\x1b[0m \x1b[90m%s:%d:\x1b[0m ", ERROR_COLOR, file, line);
+void log_log(int fatal, const char *file, const char *fmt, ...) {
+	if(fatal) {
+		fprintf(stdout, "%sFATAL\x1b[0m \x1b[90m%s:\x1b[0m ", FATAL_COLOR, file);
 	} else {
-		fprintf(stdout, "%sFATAL\x1b[0m \x1b[90m%s:%d:\x1b[0m ", FATAL_COLOR, file, line);
+		fprintf(stdout, "%sERROR\x1b[0m \x1b[90m%s:\x1b[0m ", ERROR_COLOR, file);
 	}
 	
 	va_list args;
